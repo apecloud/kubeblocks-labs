@@ -1,0 +1,21 @@
+{
+  "title": "Kubeblocks 1node",
+  "description": "Use a simple one node Kubernetes cluster and let user list all pods",
+  "details": {
+    "intro": {
+      "text": "intro.md"
+    },
+    "steps": [
+      {
+        "title": "Install kbcli & kubeblocks",
+        "text": "step1/text.md"
+      }
+    ],
+    "finish": {
+      "text": "finish.md"
+    }
+  },
+  "backend": {
+    "imageid": "kubernetes-kubeadm-1node"
+  }
+}
