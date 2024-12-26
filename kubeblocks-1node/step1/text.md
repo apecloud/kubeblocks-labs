@@ -45,8 +45,8 @@ helm install kubeblocks kubeblocks/kubeblocks --version 1.0.0-beta.20 \
   --set image.registry=docker.io \
   --set dataProtection.image.registry=docker.io \
   --set addonChartsImage.registry=docker.io \
-  --set 'autoInstalledAddons[0]=snapshot-controller' \
-  --set 'autoInstalledAddons[1]=mysql'
+  --set 'autoInstalledAddons[0]=mysql' \
+  --set 'autoInstalledAddons[1]=snapshot-controller'
 ```{{exec}}
 
 ✅ After completing these steps, you have successfully deployed KubeBlocks in your cluster!
