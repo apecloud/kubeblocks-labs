@@ -61,6 +61,9 @@ You should see all pods in Running status.
 
 ```
 kbcli addon search mysql
+```{{exec}}
+
+```
 kbcli addon install mysql --version 1.0.0-alpha.0
 ```{{exec}}
 
