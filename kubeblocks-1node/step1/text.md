@@ -58,13 +58,8 @@ kubectl get pods
 
 You should see all pods in Running status.
 
-## Step 6 - Install MySQL
+## Step 6 - Create MySQL Cluster
 
 ```
-kbcli addon search mysql
+kbcli create cluster mysql
 ```{{exec}}
-
-```
-kbcli addon install mysql --version 1.0.0-alpha.0
-```{{exec}}
-
