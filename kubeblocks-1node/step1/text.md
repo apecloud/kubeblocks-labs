@@ -61,5 +61,5 @@ You should see all pods in Running status.
 ## Step 6 - Create MySQL Cluster
 
 ```
-kbcli create cluster mysql
+kbcli cluster create mysql --cpu=0.5 --memory=0.5
 ```{{exec}}
