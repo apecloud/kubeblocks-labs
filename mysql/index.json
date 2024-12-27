@@ -17,10 +17,6 @@
       {
         "title": "Install Cluster",
         "text": "step2_install_cluster/scale-for-mysql.md"
-      },
-      {
-        "title": "Install Cluster",
-        "text": "step2_install_cluster/iframe.md"
       }
     ],
     "finish": {
