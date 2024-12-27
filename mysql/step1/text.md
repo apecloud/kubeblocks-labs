@@ -41,12 +41,13 @@ helm repo update
 Finally, install KubeBlocks using Helm:
 
 ```bash
-helm install kubeblocks kubeblocks/kubeblocks --version 1.0.0-beta.20 \
+helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 1.0.0-beta.20 \
   --set image.registry=docker.io \
   --set dataProtection.image.registry=docker.io \
   --set addonChartsImage.registry=docker.io \
   --set 'autoInstalledAddons[0]=mysql' \
-  --set 'autoInstalledAddons[1]=snapshot-controller'
+  --set 'autoInstalledAddons[1]=snapshot-controller' \
+  --create-namespace
 ```{{exec}}
 
 ✅ After completing these steps, you have successfully deployed KubeBlocks in your cluster!
@@ -62,6 +63,11 @@ You should see all pods in Running status.
 
 ```
 kbcli cluster create mysql mycluster --cpu=0.5 --memory=0.5
+```{{exec}}
+
+You can view the status of the cluster:
+```
+kbcli cluster describe mycluster
 ```{{exec}}
 
 Then you can connect to the MySQL cluster using the following command:
