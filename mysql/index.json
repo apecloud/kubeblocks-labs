@@ -1,14 +1,15 @@
 {
-  "title": "Kubeblocks 1node",
+  "title": "MySQL",
   "description": "Use a simple one node Kubernetes cluster and let user list all pods",
   "details": {
-    "intro": {
-      "text": "intro.md"
-    },
     "steps": [
       {
         "title": "Install kbcli & kubeblocks",
-        "text": "step1/text.md"
+        "text": "step1_install_kubeblocks/text.md"
+      },
+      {
+        "title": "Install Cluster",
+        "text": "step2_install_cluster/text.md"
       }
     ],
     "finish": {
