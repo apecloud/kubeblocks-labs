@@ -54,7 +54,15 @@ helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 1.0.0-beta.
 
 You can verify the installation by running:
 ```bash
-kubectl get pods
+kubectl get pods -n kb-system
 ```{{exec}}
 
-You should see all pods in Running status.
+
+
+```
+controlplane $ kubectl get pods -n kb-system
+NAME                                            READY   STATUS    RESTARTS   AGE
+kb-addon-snapshot-controller-6d6b8486f5-68hsq   1/1     Running   0          5m51s
+kubeblocks-746dcc597-crpcj                      1/1     Running   0          6m26s
+kubeblocks-dataprotection-587bb588b4-wlwxw      1/1     Running   0          6m26s
+```
