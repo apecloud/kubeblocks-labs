@@ -20,7 +20,7 @@ export KB_VERSION=v1.0.0-beta.20
 kubectl create -f https://github.com/apecloud/kubeblocks/releases/download/$KB_VERSION/kubeblocks_crds.yaml
 ```{{exec}}
 
-## Step 4 - Add the Helm Repository
+## Step 3 - Add the Helm Repository
 
 Add the official KubeBlocks Helm repository and then update your local repo cache:
 
@@ -29,7 +29,7 @@ helm repo add kubeblocks https://apecloud.github.io/helm-charts
 helm repo update
 ```{{exec}}
 
-## Step 5 - Install KubeBlocks with Helm
+## Step 4 - Install KubeBlocks with Helm
 
 Finally, install KubeBlocks using Helm:
 

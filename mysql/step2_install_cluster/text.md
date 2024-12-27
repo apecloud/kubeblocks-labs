@@ -24,7 +24,13 @@ mycluster-mysql-0   4/4     Running   0          9m8s
 
 ## Step 2 - Connect to the MySQL Cluster
 
-Once the cluster is running, connect to MySQL by running:
+**Wait for port 3306 to become available**:
+
+```bash
+kubectl exec mycluster-mysql-0 -- sh -c 'until mysqladmin ping -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD --silent; do echo "Waiting for MySQL on port 3306..." && sleep 5; done'
+```{{exec}}
+
+Once the cluster is ready and 3306 is open, connect to MySQL by running:
 
 ```bash
 kubectl exec -it mycluster-mysql-0 -- bash -c 'mysql -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD'
