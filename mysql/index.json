@@ -8,7 +8,8 @@
     "steps": [
       {
         "title": "Install kbcli & kubeblocks",
-        "text": "step1_install_kubeblocks/text.md"
+        "text": "step1_install_kubeblocks/text.md",
+        "verify": "step1_install_kubeblocks/verify.sh"
       },
       {
         "title": "Install Cluster",
