@@ -1,6 +1,6 @@
 {
   "title": "MySQL",
-  "description": "Use a simple one node Kubernetes cluster and let user list all pods",
+  "description": "This tutorial illustrates how to create and manage a MySQL cluster by KubeBlocks",
   "details": {
     "steps": [
       {
