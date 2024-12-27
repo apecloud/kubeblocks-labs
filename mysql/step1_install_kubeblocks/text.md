@@ -2,28 +2,21 @@
 
 In this scenario, you'll learn how to deploy **KubeBlocks** in your Kubernetes cluster.
 
-## Step 1 - Prepare Environment
-
-Set up the following environment variables:
-
-```bash
-export KB_CLI_VERSION=v1.0.0-beta.8
-export KB_VERSION=v1.0.0-beta.20
-```{{exec}}
-
-## Step 2 - Install KubeBlocks CLI
+## Step 1 - Install KubeBlocks CLI
 
 Install the KubeBlocks CLI tool:
 
 ```bash
+export KB_CLI_VERSION=v1.0.0-beta.8
 curl -fsSL https://kubeblocks.io/installer/install_cli.sh | bash -s $KB_CLI_VERSION
 ```{{exec}}
 
-## Step 3 - Install CRDs
+## Step 2 - Install CRDs
 
 Install the Custom Resource Definitions (CRDs) required by KubeBlocks:
 
 ```bash
+export KB_VERSION=v1.0.0-beta.20
 kubectl create -f https://github.com/apecloud/kubeblocks/releases/download/$KB_VERSION/kubeblocks_crds.yaml
 ```{{exec}}
 
