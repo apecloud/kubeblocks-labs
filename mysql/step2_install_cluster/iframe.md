@@ -1,0 +1,1 @@
+<iframe src="https://raw.githubusercontent.com/apecloud/kubeblocks/refs/heads/main/docs/user_docs/kubeblocks-for-mysql-community-edition/cluster-management/scale-for-mysql.md" width="100%" height="500px"></iframe>

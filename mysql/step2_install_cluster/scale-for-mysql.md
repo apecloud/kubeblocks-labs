@@ -1,14 +1,3 @@
----
-title: Scale for a MySQL cluster
-description: How to scale a MySQL cluster, horizontal scaling, vertical scaling
-keywords: [mysql, horizontal scaling, vertical scaling]
-sidebar_position: 2
-sidebar_label: Scale
----
-
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
 # Scale a MySQL cluster
 
 You can scale a MySQL cluster in two ways, vertical scaling and horizontal scaling.
