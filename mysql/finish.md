@@ -8,7 +8,7 @@ You solved this challenge!
 For more information, please visit [kubeblocks.io](https://kubeblocks.io/)
 
 - [MySQL](https://kubeblocks.io/docs/preview/user_docs/kubeblocks-for-mysql-community-edition/cluster-management/create-and-connect-a-mysql-cluster)
-- [ApeCloud MySQL](https://kubeblocks.io/docs/preview/user_docs/kubeblocks-for-apecloud-mysql/cluster-management/create-and-connect-an-apecloud-mysql-cluster)MySQL
+- [ApeCloud MySQL](https://kubeblocks.io/docs/preview/user_docs/kubeblocks-for-apecloud-mysql/cluster-management/create-and-connect-an-apecloud-mysql-cluster)
 - [PostgreSQL](https://kubeblocks.io/docs/preview/user_docs/kubeblocks-for-postgresql/cluster-management/create-and-connect-a-postgresql-cluster)
 - [Redis](https://kubeblocks.io/docs/preview/user_docs/kubeblocks-for-redis/cluster-management/create-and-connect-a-redis-cluster)
 - [MongoDB](https://kubeblocks.io/docs/preview/user_docs/kubeblocks-for-mongodb/cluster-management/create-and-connect-to-a-mongodb-cluster)
