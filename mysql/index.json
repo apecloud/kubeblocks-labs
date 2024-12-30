@@ -1,6 +1,6 @@
 {
-  "title": "MySQL",
-  "description": "This tutorial illustrates how to create and manage a MySQL cluster by KubeBlocks",
+  "title": "KubeBlocks",
+  "description": "This tutorial illustrates how to install KubeBlocks on a Kubernetes cluster and create a MySQL database.",
   "details": {
     "intro": {
       "text": "intro.md"
