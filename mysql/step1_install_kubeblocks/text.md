@@ -34,7 +34,7 @@ helm repo update
 Finally, install KubeBlocks using Helm:
 
 ```bash
-helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 1.0.0-beta.20 \
+helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 1.0.0-beta.22 \
   --set image.registry=docker.io \
   --set dataProtection.image.registry=docker.io \
   --set addonChartsImage.registry=docker.io \
