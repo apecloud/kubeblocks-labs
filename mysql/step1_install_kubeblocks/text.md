@@ -7,7 +7,7 @@ In this scenario, you'll learn how to deploy **KubeBlocks** in your Kubernetes c
 Install the KubeBlocks CLI tool:
 
 ```bash
-export KB_CLI_VERSION=v1.0.0-beta.8
+export KB_CLI_VERSION=v1.0.0-beta.9
 curl -fsSL https://kubeblocks.io/installer/install_cli.sh | bash -s $KB_CLI_VERSION
 ```{{exec}}
 
@@ -16,7 +16,7 @@ curl -fsSL https://kubeblocks.io/installer/install_cli.sh | bash -s $KB_CLI_VERS
 Install the Custom Resource Definitions (CRDs) required by KubeBlocks:
 
 ```bash
-export KB_VERSION=v1.0.0-beta.20
+export KB_VERSION=v1.0.0-beta.22
 kubectl create -f https://github.com/apecloud/kubeblocks/releases/download/$KB_VERSION/kubeblocks_crds.yaml
 ```{{exec}}
 
