@@ -2,7 +2,7 @@
 
 ## Step 1 - Create the Cluster
 
-Create a PostgreSQL cluster named **mycluster** with the specified CPU and memory limits:
+Create a **PostgreSQL** cluster named **mycluster** with the specified CPU and memory limits:
 
 ```bash
 kubectl create namespace demo
@@ -52,29 +52,33 @@ EOF
 Check the pod status:
 
 ```bash
-kubectl get pods
+kubectl get pods -n demo
 ```{{exec}}
 
 > **Note**: It may take a few minutes for the pods to transition to `Running`. You should see output similar to:
 
 ```
 controlplane $ kubectl get pods -n demo
-NAME                READY   STATUS    RESTARTS   AGE
-mycluster-mysql-0   4/4     Running   0          9m8s
+NAME                     READY   STATUS    RESTARTS   AGE
+mycluster-postgresql-0   4/4     Running   0          2m43s
 ```
 
-## Step 2 - Connect to the MySQL Cluster
+## Step 2 - Connect to the PostgreSQL Cluster
 
-**Wait for port 3306 to become available**:
-
-```bash
-kubectl -n demo exec mycluster-mysql-0 -- sh -c 'until mysqladmin ping -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD --silent; do echo "Waiting for MySQL on port 3306..." && sleep 5; done' -n demo
-```{{exec}}
-
-Once the cluster is ready and 3306 is open, connect to MySQL by running:
+**Wait for port 5432 to become available**:
 
 ```bash
-kubectl -n demo exec -it mycluster-mysql-0 -- bash -c 'mysql -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD'
+kubectl -n demo exec mycluster-postgresql-0 -- \
+    sh -c 'until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do \
+    echo "Waiting for PostgreSQL on port 5432..." && sleep 5; \
+    done'
 ```{{exec}}
 
-> **Tip**: For information on how to view the username and password, or to connect in other ways, see the [KubeBlocks documentation](https://kubeblocks.io/docs/preview/user_docs/kubeblocks-for-mysql-community-edition/cluster-management/create-and-connect-a-mysql-cluster#connect-to-a-mysql-cluster).
+Once the cluster is ready and port 5432 is open, connect to PostgreSQL by running:
+
+```bash
+kubectl -n demo exec -it mycluster-postgresql-0 -- \
+    bash -c 'psql -h 127.0.0.1 -p 5432 -U postgres'
+```{{exec}}
+
+> **Tip**: For information on how to view the username and password, or to connect in other ways, see the [KubeBlocks documentation](https://kubeblocks.io/docs/).
