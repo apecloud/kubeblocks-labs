@@ -61,20 +61,11 @@ mycluster-mongodb-0     2/2     Running   0          2m43s
 
 ## Step 2 - Connect to the MongoDB Cluster
 
-**Wait for port 27017 to become available**:
-
-```bash
-kubectl -n demo exec mycluster-mongodb-0 -- \
-    sh -c 'until mongo --host 127.0.0.1 --port 27017 --eval "db.runCommand({ping:1})" > /dev/null 2>&1; do \
-    echo "Waiting for MongoDB on port 27017..." && sleep 5; \
-    done'
-```{{exec}}
-
-Once the cluster is ready and port 27017 is open, connect to MongoDB by running:
+Wait for port 27017 to become available, Once the cluster is ready and port 27017 is open, connect to MongoDB by running:
 
 ```bash
 kubectl -n demo exec -it mycluster-mongodb-0 -- \
-    bash -c 'mongo --host 127.0.0.1 --port 27017'
+    mongosh --host 127.0.0.1 --port 27017
 ```{{exec}}
 
 > **Tip**: For information on how to view the username and password, or to connect in other ways, see the [KubeBlocks documentation](https://kubeblocks.io/docs/).

@@ -62,10 +62,10 @@ spec:
     replicas: 1
     resources:
       limits:
-        cpu: '0.5'
+        cpu: '0'
         memory: 0.5Gi
       requests:
-        cpu: '0.5'
+        cpu: '0'
         memory: 0.5Gi
     volumeClaimTemplates:
     - name: data
@@ -95,16 +95,7 @@ mycluster-redis-sentinel-0     2/2     Running   0          2m43s
 
 ## Step 2 - Connect to the Redis Cluster
 
-**Wait for port 6379 to become available** (main Redis port):
-
-```bash
-kubectl -n demo exec mycluster-redis-0 -- \
-    sh -c 'until redis-cli -h 127.0.0.1 -p 6379 ping | grep PONG > /dev/null 2>&1; do \
-    echo "Waiting for Redis on port 6379..." && sleep 5; \
-    done'
-```{{exec}}
-
-Once the cluster is ready and port 6379 is open, connect to Redis by running:
+Wait for port 6379 to become available (main Redis port), Once the cluster is ready and port 6379 is open, connect to Redis by running:
 
 ```bash
 kubectl -n demo exec -it mycluster-redis-0 -- \
