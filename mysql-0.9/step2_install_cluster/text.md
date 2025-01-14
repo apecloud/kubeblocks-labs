@@ -71,13 +71,13 @@ mycluster-mysql-0   4/4     Running   0          9m8s
 **Wait for port 3306 to become available**:
 
 ```bash
-kubectl exec mycluster-mysql-0 -- sh -c 'until mysqladmin ping -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD --silent; do echo "Waiting for MySQL on port 3306..." && sleep 5; done'
+kubectl -n demo exec mycluster-mysql-0 -- sh -c 'until mysqladmin ping -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD --silent; do echo "Waiting for MySQL on port 3306..." && sleep 5; done'
 ```{{exec}}
 
 Once the cluster is ready and 3306 is open, connect to MySQL by running:
 
 ```bash
-kubectl exec -it mycluster-mysql-0 -- bash -c 'mysql -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD'
+kubectl -n demo exec -it mycluster-mysql-0 -- bash -c 'mysql -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD'
 ```{{exec}}
 
 > **Tip**: For information on how to view the username and password, or to connect in other ways, see the [KubeBlocks documentation](https://kubeblocks.io/docs/preview/user_docs/kubeblocks-for-mysql-community-edition/cluster-management/create-and-connect-a-mysql-cluster#connect-to-a-mysql-cluster).
