@@ -32,7 +32,7 @@ spec:
     - error
     - slow
     disableExporter: true
-    replicas: 2
+    replicas: 1
     serviceAccountName: kb-mycluster
     resources:
       limits:
@@ -55,7 +55,7 @@ EOF
 Check the pod status:
 
 ```bash
-kubectl get pods
+kubectl get pods -n demo
 ```{{exec}}
 
 > **Note**: It may take a few minutes for the pods to transition to `Running`. You should see output similar to:
