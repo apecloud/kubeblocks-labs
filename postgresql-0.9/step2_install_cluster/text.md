@@ -5,6 +5,7 @@
 Create a PostgreSQL cluster named **mycluster** with the specified CPU and memory limits:
 
 ```bash
+kubectl create namespace demo
 cat <<EOF | kubectl apply -f -
 apiVersion: apps.kubeblocks.io/v1alpha1
 kind: Cluster
@@ -29,7 +30,7 @@ spec:
       operator: Equal
       value: 'true'
       effect: NoSchedule
-    replicas: 2
+    replicas: 1
     resources:
       limits:
         cpu: '0.5'
@@ -57,7 +58,7 @@ kubectl get pods
 > **Note**: It may take a few minutes for the pods to transition to `Running`. You should see output similar to:
 
 ```
-controlplane $ kubectl get pods
+controlplane $ kubectl get pods -n demo
 NAME                READY   STATUS    RESTARTS   AGE
 mycluster-mysql-0   4/4     Running   0          9m8s
 ```
@@ -67,7 +68,7 @@ mycluster-mysql-0   4/4     Running   0          9m8s
 **Wait for port 3306 to become available**:
 
 ```bash
-kubectl exec mycluster-mysql-0 -- sh -c 'until mysqladmin ping -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD --silent; do echo "Waiting for MySQL on port 3306..." && sleep 5; done'
+kubectl exec mycluster-mysql-0 -- sh -c 'until mysqladmin ping -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD --silent; do echo "Waiting for MySQL on port 3306..." && sleep 5; done' -n demo
 ```{{exec}}
 
 Once the cluster is ready and 3306 is open, connect to MySQL by running:

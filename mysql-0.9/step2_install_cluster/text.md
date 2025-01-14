@@ -5,6 +5,7 @@
 Create a MySQL cluster named **mycluster** with the specified CPU and memory limits:
 
 ```bash
+kubectl create namespace demo
 cat <<EOF | kubectl apply -f -
 apiVersion: apps.kubeblocks.io/v1alpha1
 kind: Cluster
@@ -60,7 +61,7 @@ kubectl get pods
 > **Note**: It may take a few minutes for the pods to transition to `Running`. You should see output similar to:
 
 ```
-controlplane $ kubectl get pods
+controlplane $ kubectl get pods -n demo
 NAME                READY   STATUS    RESTARTS   AGE
 mycluster-mysql-0   4/4     Running   0          9m8s
 ```
