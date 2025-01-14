@@ -2,7 +2,7 @@
 
 ## Step 1 - Create the Cluster
 
-Create a MySQL cluster named **mycluster** with the specified CPU and memory limits:
+Create a PostgreSQL cluster named **mycluster** with the specified CPU and memory limits:
 
 ```bash
 cat <<EOF | kubectl apply -f -
@@ -12,27 +12,24 @@ metadata:
   name: mycluster
   namespace: demo
 spec:
-  clusterDefinitionRef: mysql
-  clusterVersionRef: mysql-8.0.33
   terminationPolicy: Delete
-  affinity:
-    podAntiAffinity: Preferred
-    topologyKeys:
-    - kubernetes.io/hostname
-  tolerations:
+  componentSpecs:
+  - name: postgresql
+    componentDef: postgresql-12
+    enabledLogs:
+    - running
+    disableExporter: true
+    affinity:
+      podAntiAffinity: Preferred
+      topologyKeys:
+      - kubernetes.io/hostname
+      tenancy: SharedNode
+    tolerations:
     - key: kb-data
       operator: Equal
       value: 'true'
       effect: NoSchedule
-  componentSpecs:
-  - name: mysql
-    componentDefRef: mysql
-    enabledLogs:
-    - error
-    - slow
-    disableExporter: true
     replicas: 2
-    serviceAccountName: kb-mycluster
     resources:
       limits:
         cpu: '0.5'
