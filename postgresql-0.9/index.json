@@ -1,5 +1,5 @@
 {
-  "title": "PostgreSQL 0.9",
+  "title": "PostgreSQL",
   "description": "This tutorial illustrates how to install KubeBlocks on a Kubernetes cluster and create a PostgreSQL database.",
   "details": {
     "intro": {

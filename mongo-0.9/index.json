@@ -1,5 +1,5 @@
 {
-  "title": "Mongo 0.9",
+  "title": "Mongo",
   "description": "This tutorial illustrates how to install KubeBlocks on a Kubernetes cluster and create a Mongo database.",
   "details": {
     "intro": {

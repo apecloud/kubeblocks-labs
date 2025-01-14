@@ -1,26 +1,26 @@
-{
-  "title": "MySQL",
-  "description": "This tutorial illustrates how to install KubeBlocks on a Kubernetes cluster and create a MySQL database.",
-  "details": {
-    "intro": {
-      "text": "intro.md"
-    },
-    "steps": [
-      {
-        "title": "Install kbcli & kubeblocks",
-        "text": "step1_install_kubeblocks/text.md",
-        "verify": "step1_install_kubeblocks/verify.sh"
-      },
-      {
-        "title": "Install Cluster",
-        "text": "step2_install_cluster/text.md"
-      }
-    ],
-    "finish": {
-      "text": "finish.md"
-    }
-  },
-  "backend": {
-    "imageid": "kubernetes-kubeadm-1node-4GB"
-  }
-}
+//{
+//  "title": "MySQL",
+//  "description": "This tutorial illustrates how to install KubeBlocks on a Kubernetes cluster and create a MySQL database.",
+//  "details": {
+//    "intro": {
+//      "text": "intro.md"
+//    },
+//    "steps": [
+//      {
+//        "title": "Install kbcli & kubeblocks",
+//        "text": "step1_install_kubeblocks/text.md",
+//        "verify": "step1_install_kubeblocks/verify.sh"
+//      },
+//      {
+//        "title": "Install Cluster",
+//        "text": "step2_install_cluster/text.md"
+//      }
+//    ],
+//    "finish": {
+//      "text": "finish.md"
+//    }
+//  },
+//  "backend": {
+//    "imageid": "kubernetes-kubeadm-1node-4GB"
+//  }
+//}

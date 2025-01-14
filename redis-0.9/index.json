@@ -1,5 +1,5 @@
 {
-  "title": "Redis 0.9",
+  "title": "Redis",
   "description": "This tutorial illustrates how to install KubeBlocks on a Kubernetes cluster and create a Redis database.",
   "details": {
     "intro": {
