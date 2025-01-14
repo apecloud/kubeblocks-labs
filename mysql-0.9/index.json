@@ -1,5 +1,5 @@
 {
-  "title": "KubeBlocks",
+  "title": "MySQL 0.9",
   "description": "This tutorial illustrates how to install KubeBlocks on a Kubernetes cluster and create a MySQL database.",
   "details": {
     "intro": {
