@@ -1,5 +1,5 @@
 ---
-title: Kubeblocks Tutorial 101
+title: Kubeblocks Tutorial 101 - Getting Started
 description: |
   Learn how to run any database on Kubernetes with KubeBlocks!
 
@@ -90,13 +90,13 @@ tagz:
   - databases
 
 tasks:
-#  # 1) Initialization task
-#  init_task_1:
-#    init: true
-#    user: laborant
-#    run: |
-#      # Example command: running a simple Docker container on dev-machine
-#      docker run hello-world
+  #  # 1) Initialization task
+  #  init_task_1:
+  #    init: true
+  #    user: laborant
+  #    run: |
+  #      # Example command: running a simple Docker container on dev-machine
+  #      docker run hello-world
 
   # 2) Task to verify kbcli is installed
   verify_kbcli_installation:
@@ -349,12 +349,21 @@ kubectl -n demo exec -it mycluster-mysql-0 -- bash -c 'mysql -h127.0.0.1 -uroot 
 
 You will then be greeted by a MySQL shell prompt. Congratulations, you are now connected to your new MySQL cluster running on KubeBlocks!
 
+::hint-box
 ---
+:summary: Hint
+---
+1. You can run the command below to get the `username` and `password` of the cluster:
+```bash
+kubectl get secrets mycluster-conn-credential -n demo -o jsonpath='{.data.username}' | base64 -d
+>
+root
 
-## What’s Next?
-
-- Explore other databases (PostgreSQL, Redis, MongoDB, and more) using the same KubeBlocks workflow.
-- Adjust CPU/memory limits or scale the replica count for high availability.
+kubectl get secrets mycluster-conn-credential -n demo -o jsonpath='{.data.password}' | base64 -d
+>
+b8wvrwlm
+```
+---
 
 ## Conclusion
 
@@ -367,3 +376,16 @@ You have successfully:
 KubeBlocks provides a convenient way to **run any database on Kubernetes** with minimal friction, empowering you to standardize database operations in a cloud-native manner.
 
 For more detailed usage and advanced configuration, check out the [official KubeBlocks documentation](https://kubeblocks.io/). Enjoy your new, streamlined database management capabilities on Kubernetes!
+
+## What’s Next?
+
+- **Explore Other Databases**: Try PostgreSQL, Redis, MongoDB, ElasticSearch, Qdrant, and more — all using the same KubeBlocks workflow you just learned.
+- **Dive into Advanced Capabilities**: Move beyond basic deployments to explore higher Operator Capability Levels, including automated upgrades, backup and restore, self-healing, and more.
+- **Stay Tuned for the Next Tutorial**: In our upcoming guide, we’ll tackle more complex scenarios and showcase how to leverage KubeBlocks’ features for production-grade operations.
+
+::image-box
+---
+src: __static__/operator-capability-level.png
+alt: 'Operator Capability Level'
+---
+::
