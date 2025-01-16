@@ -192,9 +192,11 @@ tasks:
       fi
 ---
 
-Welcome to the second installment(换个说法) of our **KubeBlocks** tutorial series!
+# Kubeblocks Tutorial 201 - Seamless Upgrades & Basic Maintenance
 
-In this guide, we will focus on **seamless upgrades** and （删掉basic maintenance）**basic maintenance**—two core features that showcase KubeBlocks’ ability to run **any database** at **Operator Capability Level 5**, suitable for **production-grade** operations. Whether you’re managing a small dev cluster or a large-scale enterprise environment, KubeBlocks streamlines the entire database lifecycle on Kubernetes.
+Welcome to the **second chapter** of our **KubeBlocks** tutorial series!
+
+In this guide, we will focus on **seamless upgrades** and **basic maintenance**—two core features that showcase KubeBlocks’ ability to run **any database** at **Operator Capability Level 5**, suitable for **production-grade** operations. Whether you’re managing a small dev cluster or a large-scale enterprise environment, KubeBlocks streamlines the entire database lifecycle on Kubernetes.
 
 ::image-box
 ---
@@ -205,73 +207,165 @@ alt: 'Operator Capability Level'
 
 ## Prerequisites
 
-跟第一篇来点联动：跟读者说，为了节省他们的时间，我们自动在后台安装了KubeBlocks和3副本mysql cluster，但是可能得等几分钟安装完成，现在我们可以直接开始这个教程。（用verify_kubeblocks_installation,verify_mysql_pod_ready验证）
-给个第一篇的链接，让读者可以回去看第一篇的教程：https://labs.iximiuz.com/tutorials/kubeblocks-101-99db8bca
+To save you time, we’ve **automatically installed KubeBlocks** and created a **3-replica MySQL cluster** in the background. It may take a few minutes to complete the setup—feel free to proceed, but keep in mind that some commands might need to wait until the installation is fully finished.
 
-- A running Kubernetes cluster (e.g., [K3s](https://k3s.io/) for local testing).
-- [KubeBlocks Operator](https://kubeblocks.io/) installed (with CRDs) and ready to manage database workloads.
-- Basic familiarity with `kbcli`, `kubectl`, and Helm from the Kubeblocks Tutorial 101 – Getting Started
+If you’re new to KubeBlocks or missed the first tutorial, see:
+[Kubeblocks Tutorial 101 – Getting Started](https://labs.iximiuz.com/tutorials/kubeblocks-101-99db8bca)
+
+When you’re ready, you can verify the environment with the following tasks:
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_kbcli_installation
+---
+#active
+Confirming the `kbcli` CLI tool is installed...
+
+#completed
+Great! The `kbcli` CLI is available.
+::
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_kubeblocks_installation
+---
+#active
+Waiting for the KubeBlocks operator pods to be in a ready state...
+
+#completed
+All KubeBlocks components are installed and running!
+::
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_mysql_pod_ready
+---
+#active
+Waiting for the MySQL Pods to become ready...
+
+#completed
+Yay! Your MySQL cluster is ready. 🎉
+::
 
 ---
 
-## Outline
+## 1. Introduction & Review
 
-### 1. Introduction & Review
-- **Briefly revisit** how KubeBlocks manages **any** database and achieves **Level 5** Operator capabilities.
-- **Recap** key concepts from Tutorial 101 (installation, cluster creation, config management).
+### 1.1. Checking Your MySQL Cluster
 
-查看mysql：
-kubectl get po -n demo
+By default, a **3-replica** MySQL cluster named `mycluster` has been created in the `demo` namespace:
+
+```bash
+kubectl get pods -n demo
+```
+Output: 
+```
 NAME                READY   STATUS    RESTARTS   AGE
 mycluster-mysql-0   4/4     Running   0          16s
 mycluster-mysql-1   4/4     Running   0          16s
 mycluster-mysql-2   4/4     Running   0          16s
+```
 
-查看mysql角色：
-kubectl get po -n demo -o yaml | grep kubeblocks.io/role
+### 1.2. High Availability Demonstration
+
+```bash
+kubectl get pods -n demo -o yaml | grep kubeblocks.io/role
+```
+Output:
+```
 kubeblocks.io/role: secondary
 kubeblocks.io/role: primary
 kubeblocks.io/role: secondary
-可以看到mycluster-mysql-1是primary，剩下2个是secondary
+```
 
-可以用`kubectl delete po mycluster-mysql-1 -n demo`命令删除primary pod，然后查看pod状态，可以看到mycluster-mysql-1被重新创建，可能会选择1个新的节点作为primary。
-这个过程中没有数据丢失，这就是KubeBlocks的高可用性。
+As shown, `mycluster-mysql-1` is the **primary**, while the others are **secondary**. Let’s try removing the primary Pod to see how KubeBlocks handles high availability:
 
-### 2. Preparing for an Upgrade
-- **Check Current Cluster Version**: Verify your database cluster version and readiness.
-- **Best Practices**: Backups, resource checks, and planning for minimal downtime.
+```bash
+kubectl delete pod mycluster-mysql-1 -n demo
+```
 
-查看mysql版本：
+A new Pod (`mycluster-mysql-1`) will be created, and KubeBlocks will automatically elect one of the secondaries as the new primary. All data remains intact—demonstrating KubeBlocks’ built-in HA capabilities.
+
+---
+
+## 2. Preparing for an Upgrade
+
+Before upgrading:
+- **Check the current cluster version** and the readiness of your setup.
+
+```bash
+# Look for MySQL versions recognized by KubeBlocks
 kubectl get clusterversion | grep mysql
+```
+```bash
+laborant@dev-machine:~$ kubectl get clusterversion | grep mysql
+Warning: The ClusterVersion CRD has been deprecated since 0.9.0
+ac-mysql-8.0.30      apecloud-mysql       Available   2m55s
+ac-mysql-8.0.30-1    apecloud-mysql       Available   2m55s
+mysql-5.7.44         mysql                Available   2m56s
+mysql-8.0.33         mysql                Available   2m56s
+mysql-8.4.2          mysql                Available   2m56s
+```
 
-### 3. Performing a Rolling Upgrade
-- **Create an OpsRequest** to upgrade the MySQL/PostgreSQL/Redis version (example).
-- **Monitor the Upgrade** progress using `kbcli cluster describe-ops`.
-- **Verify** that Pods are sequentially upgraded with no major downtime.
+---
 
-修改mysql版本：
-kubectl edit cluster mycluster -n demo
-修改clusterVersionRef为mysql-8.4.2
+## 3. Performing a Rolling Upgrade
 
-### 4. Automated Upgrades
-- **Configure Auto-Upgrade Policies**: Show how to automatically handle patch/minor version updates.
-- **Observe** and confirm everything is done without manual intervention.
+Now, let’s **perform a rolling upgrade** to a newer MySQL version. KubeBlocks orchestrates this process Pod-by-Pod to maintain availability.
 
-通过kubectl get po -n demo查看mysql pod状态，可以看到pod正在逐个升级。
-并且是从secondary开始升级。这样避免了升级primary，选出新primary后又被升级的情况。
+1. **Edit the `Cluster` resource** to bump your MySQL version, for example to `mysql-8.4.2` (fictional for demo):
 
-### 6. Post-Maintenance Validation
-- **Check Logs and Metrics**: Confirm that the upgrades and maintenance steps were completed successfully.
-- **Validate Connectivity**: Ensure your applications can reconnect to the database cluster seamlessly.
+   ```bash
+   kubectl edit cluster mycluster -n demo
+   # Modify:
+   # spec:
+   #   clusterVersionRef: mysql-8.4.2
+   ```
 
-### 9. What’s Next
-- **Explore** other databases (PostgreSQL, Redis, MongoDB, Elasticsearch, Qdrant, etc.).
-- **Continue** 下一个tutorial介绍full lifecycle management，包括备份，恢复，failover等。
+2. **Monitor the upgrade** process:
+
+   ```bash
+   kbcli cluster describe-ops <your-ops-request-name> -n demo
+   ```
+
+3. **Verify** that the Pods upgrade sequentially with minimal or zero downtime.
+
+---
+
+## 4. Automated Upgrades
+
+To truly embrace “seamless upgrades,” you can configure **auto-upgrade policies** so that minor or patch releases are applied automatically—no manual intervention needed. KubeBlocks ensures a safe, rolling approach, typically starting with secondaries before handling the primary.
+
+```bash
+# Check MySQL Pod states again
+kubectl get pods -n demo
+# You should see sequential restarts or upgrades, starting with secondaries.
+```
+
+---
+
+## 6. Post-Maintenance Validation
+
+After the upgrade (or any maintenance operation), **validate**:
+
+- **Logs & Metrics**: Confirm no errors or warnings in the logs.
+- **Connectivity**: Ensure apps or clients can still connect to the cluster.
+- **Replication & Roles**: Check that the primary/secondary relationships are intact.
+
+---
+
+## 9. What’s Next?
+
+- **Explore** other databases (PostgreSQL, Redis, MongoDB, Elasticsearch, Qdrant, etc.) on KubeBlocks.
+- **Continue** to the next tutorial, where we’ll dive into **full lifecycle management** (backups, restores, and failover), further showcasing how KubeBlocks simplifies production-grade database operations.
 
 ---
 
 ## Final Thoughts
 
-KubeBlocks stands out by providing a **production-ready** approach to database management on Kubernetes. By mastering **seamless upgrades** and **basic maintenance**, you’ll be ready to tackle more complex scenarios—backups, disaster recovery, and beyond—all while reaping the benefits of container orchestration.
+KubeBlocks provides a **production-ready** approach to database management on Kubernetes. By mastering **seamless upgrades** and basic maintenance tasks, you’re well on your way to tackling more advanced features such as backup, restore, high availability, and beyond—all while harnessing the power of Kubernetes orchestration.
 
-Stay tuned for further tutorials in this series, where we’ll delve even deeper into the power of KubeBlocks!
+Stay tuned for future tutorials in this series, where we’ll explore even more of KubeBlocks’ capabilities and show you how to run **any database** with confidence at **Operator Capability Level 5**. Enjoy your newfound mastery of cloud-native database operations!
