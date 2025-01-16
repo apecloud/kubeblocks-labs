@@ -405,7 +405,7 @@ Configure Constraint:
     * When `Dynamic` is `true`, it means the effectiveness type of parameters is **dynamic** and can be configured online.
     * When `Dynamic` is `false`, it means the effectiveness type of parameters is **static** and a pod restarting is required to make the configuration effective.
 * Description: It describes the parameter definition.
-  ::
+::
 
 
 ### 4.2 Configure parameters
@@ -525,7 +525,7 @@ kbcli cluster edit-config mycluster --config-spec=mysql-replication-config -n de
 ```
 * Since MySQL currently supports multiple templates, it is required to use `--config-spec` to specify a configuration template. You can run `kbcli cluster describe-config mycluster -n demo` to view all template names.
 * If there are multiple components in a cluster, use `--components` to specify a component.
-  ::
+::
 
 ### 4.3 View history and compare differences
 
