@@ -192,8 +192,6 @@ tasks:
       fi
 ---
 
-# Kubeblocks Tutorial 201 - Seamless Upgrades & Basic Maintenance
-
 Welcome to the **second chapter** of our **KubeBlocks** tutorial series!
 
 In this guide, we will focus on **seamless upgrades** and **basic maintenance**—two core features that showcase KubeBlocks’ ability to run **any database** at **Operator Capability Level 5**, suitable for **production-grade** operations. Whether you’re managing a small dev cluster or a large-scale enterprise environment, KubeBlocks streamlines the entire database lifecycle on Kubernetes.
