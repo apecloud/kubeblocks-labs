@@ -78,8 +78,8 @@ playground:
 
 cover: __static__/kubeblocks-arch.png
 
-createdAt: 2023-11-14
-updatedAt: 2023-12-02
+createdAt: 2025-01-15
+updatedAt: 2025-01-16
 
 categories:
   - kubernetes
@@ -365,6 +365,205 @@ b8wvrwlm
 ```
 ::
 
+## 4. Manage Configuration Changes
+
+KubeBlocks uses intelligent configuration management to apply parameter changes safely and efficiently.
+- If a parameter supports dynamic reloading, the change is applied immediately with no downtime.
+- If the parameter requires a restart, KubeBlocks automatically performs a graceful restart of the necessary components—ensuring minimal disruption to your database cluster.
+
+### 4.1 View parameters
+`kbcli` provides a series of commands to help you view, configure, and manage parameters.
+
+* View the details of all the current configuration files.
+```bash
+kbcli cluster describe-config mycluster --show-detail -n demo
+```
+
+* View the user guide of a specified parameter.
+```bash
+kbcli cluster explain-config mycluster --param=innodb_buffer_pool_size --config-specs=mysql-replication-config -n demo
+```
+
+::hint-box
+---
+:summary: Explanation of Output
+---
+```bash
+component: mysql
+template meta:
+  ConfigSpec: mysql-replication-config	ComponentName: mysql	ClusterName: mycluster
+Configure Constraint:
+  Parameter Name:     innodb_buffer_pool_size
+  Allowed Values:     [5242880-18446744073709552000]
+  Scope:              Global
+  Dynamic:            true
+  Type:               integer
+  Description:        The size in bytes of the memory buffer innodb uses to cache data and indexes of its tables 
+```
+* Allowed Values: It defines the valid value range of this parameter.
+* Dynamic: The value of `Dynamic` in `Configure Constraint` defines how the parameter configuration takes effect. There are two different configuration strategies based on the effectiveness type of modified parameters, i.e. **dynamic** and **static**.
+    * When `Dynamic` is `true`, it means the effectiveness type of parameters is **dynamic** and can be configured online.
+    * When `Dynamic` is `false`, it means the effectiveness type of parameters is **static** and a pod restarting is required to make the configuration effective.
+* Description: It describes the parameter definition.
+  ::
+
+
+### 4.2 Configure parameters
+
+The example below takes configuring `max_connections` and `innodb_buffer_pool_size` as an example.
+
+1. View the current values of `max_connections` and `innodb_buffer_pool_size`.
+
+```bash
+kbcli cluster connect mycluster -n demo
+```
+
+```bash
+mysql> show variables like '%max_connections%';
+>
++-----------------+-------+
+| Variable_name   | Value |
++-----------------+-------+
+| max_connections | 83    |
++-----------------+-------+
+1 row in set (0.04 sec)
+```
+
+```bash
+mysql> show variables like '%innodb_buffer_pool_size%';
+>
++-------------------------+-----------+
+| Variable_name           | Value     |
++-------------------------+-----------+
+| innodb_buffer_pool_size | 134217728 |
++-------------------------+-----------+
+1 row in set (0.00 sec)
+```
+
+2. Adjust the values of `max_connections` and `innodb_buffer_pool_size`.
+
+```bash
+kbcli cluster configure mycluster --set=max_connections=600,innodb_buffer_pool_size=512M -n demo
+```
+
+3. Search the status of the parameter configuration.
+```bash
+kbcli cluster describe-ops $<Replace_With_OpsRequestName> -n demo
+```
+`Status.Progress` shows the overall status of the parameter configuration and `Conditions` show the details.
+
+
+::hint-box
+---
+:summary: Explanation of Output
+---
+```bash
+Spec:
+Name: mycluster-reconfiguring-pxs46	NameSpace: demo	Cluster: mycluster	Type: Reconfiguring
+
+Command:
+  kbcli cluster configure mycluster --components=mysql --config-specs=mysql-replication-config --config-file=my.cnf --set innodb_buffer_pool_size=512M --set max_connections=600 --namespace=demo
+
+Status:
+  Start Time:         Jul 05,2024 19:00 UTC+0800
+  Completion Time:    Jul 05,2024 19:00 UTC+0800
+  Duration:           2s
+  Status:             Succeed
+  Progress:           2/2
+                      OBJECT-KEY   STATUS   DURATION   MESSAGE
+
+Conditions:
+LAST-TRANSITION-TIME         TYPE                 REASON                            STATUS   MESSAGE
+Jul 05,2024 19:00 UTC+0800   WaitForProgressing   WaitForProgressing                True     wait for the controller to process the OpsRequest: mycluster-reconfiguring-pxs46 in Cluster: mycluster
+Jul 05,2024 19:00 UTC+0800   Validated            ValidateOpsRequestPassed          True     OpsRequest: mycluster-reconfiguring-pxs46 is validated
+Jul 05,2024 19:00 UTC+0800   Reconfigure          ReconfigureStarted                True     Start to reconfigure in Cluster: mycluster, Component: mysql
+Jul 05,2024 19:00 UTC+0800   Succeed              OpsRequestProcessedSuccessfully   True     Successfully processed the OpsRequest: mycluster-reconfiguring-pxs46 in Cluster: mycluster
+
+Warning Events: <none>
+```
+::
+
+4. Connect to the database to verify whether the parameters are configured as expected.
+
+It takes about 30 seconds for the configuration to take effect because the kubelet requires some time to sync changes in the ConfigMap to the Pod's volume.
+
+```bash
+kbcli cluster connect mycluster -n demo
+```
+
+```bash
+mysql> show variables like '%max_connections%';
+>
++-----------------+-------+
+| Variable_name   | Value |
++-----------------+-------+
+| max_connections | 600   |
++-----------------+-------+
+1 row in set (0.04 sec)
+```
+
+```bash
+mysql> show variables like '%innodb_buffer_pool_size%';
+>
++-------------------------+-----------+
+| Variable_name           | Value     |
++-------------------------+-----------+
+| innodb_buffer_pool_size | 536870912 |
++-------------------------+-----------+
+1 row in set (0.00 sec)
+```
+
+
+
+::hint-box
+---
+:summary: Batch Configuration
+---
+For your convenience, KubeBlocks offers a tool `edit-config` to help you configure parameters in a bach.
+```bash
+kbcli cluster edit-config mycluster --config-spec=mysql-replication-config -n demo
+```
+* Since MySQL currently supports multiple templates, it is required to use `--config-spec` to specify a configuration template. You can run `kbcli cluster describe-config mycluster -n demo` to view all template names.
+* If there are multiple components in a cluster, use `--components` to specify a component.
+  ::
+
+### 4.3 View history and compare differences
+
+After the configuration is completed, you can search the configuration history and compare the parameter differences.
+
+View the parameter configuration history.
+
+```bash
+kbcli cluster describe-config mycluster -n demo
+>
+component: mysql
+
+ConfigSpecs Meta:
+CONFIG-SPEC-NAME           FILE                              ENABLED   TEMPLATE                          CONSTRAINT                           RENDERED                                   COMPONENT   CLUSTER
+mysql-replication-config   my.cnf                            true      oracle-mysql8.0-config-template   oracle-mysql8.0-config-constraints   mycluster-mysql-mysql-replication-config   mysql       mycluster
+agamotto-configuration     agamotto-config.yaml              false     mysql-agamotto-configuration                                           mycluster-mysql-agamotto-configuration     mysql       mycluster
+agamotto-configuration     agamotto-config-with-proxy.yaml   false     mysql-agamotto-configuration                                           mycluster-mysql-agamotto-configuration     mysql       mycluster
+
+History modifications:
+OPS-NAME                        CLUSTER     COMPONENT   CONFIG-SPEC-NAME           FILE     STATUS    POLICY              PROGRESS   CREATED-TIME                 VALID-UPDATED
+mycluster-reconfiguring-pxs46   mycluster   mysql       mysql-replication-config   my.cnf   Succeed   syncDynamicReload   2/2        Jul 05,2024 19:00 UTC+0800   {"my.cnf":"{\"mysqld\":{\"innodb_buffer_pool_size\":\"512M\",\"max_connections\":\"600\"}}"}
+mycluster-reconfiguring-x52fb   mycluster   mysql       mysql-replication-config   my.cnf   Succeed   syncDynamicReload   2/2        Jul 05,2024 19:04 UTC+0800   {"my.cnf":"{\"mysqld\":{\"max_connections\":\"1000\"}}"}                    
+```
+
+From the above results, there are two parameter modifications.
+
+Compare these modifications to view the configured parameters and their different values for different versions.
+
+```bash
+kbcli cluster diff-config mycluster-reconfiguring-pxs46 mycluster-reconfiguring-x9zsf -n demo
+>
+DIFF-CONFIGURE RESULT:
+  ConfigFile: my.cnf    TemplateName: mysql-replication-config ComponentName: mysql    ClusterName: mycluster       UpdateType: update      
+
+PARAMETERNAME             mycluster-reconfiguring-pxs46   mycluster-reconfiguring-x9zsf   
+max_connections           600                             2000                                      
+innodb_buffer_pool_size   512M                            1G 
+```
 
 ## Conclusion
 
@@ -373,6 +572,7 @@ You have successfully:
 1. Installed **KubeBlocks** on your Kubernetes cluster (CRDs, Helm repo, and Operator).
 2. Deployed a **MySQL** cluster.
 3. Connected to MySQL within the same cluster.
+4. Managed configuration changes for the MySQL cluster.
 
 KubeBlocks provides a convenient way to **run any database on Kubernetes** with minimal friction, empowering you to standardize database operations in a cloud-native manner.
 
