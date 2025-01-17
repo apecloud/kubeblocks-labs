@@ -1,5 +1,5 @@
 ---
-title: Kubeblocks Tutorial 201 - Seamless Upgrades
+title: KubeBlocks Tutorial 201 - Seamless Upgrades
 description: |
   Learn how to run any database on Kubernetes with KubeBlocks!
 
@@ -227,7 +227,7 @@ alt: 'Operator Capability Level'
 To save you time, we’ve **automatically installed KubeBlocks** and created a **3-replica MySQL cluster** in the background. It may take a few minutes to complete the setup—feel free to proceed, but keep in mind that some commands might need to wait until the installation is fully finished.
 
 If you’re new to KubeBlocks or missed the first tutorial, see:
-[Kubeblocks Tutorial 101 – Getting Started](/tutorials/kubeblocks-101-99db8bca)
+[KubeBlocks Tutorial 101 – Getting Started](/tutorials/kubeblocks-101-99db8bca)
 
 ::simple-task
 ---

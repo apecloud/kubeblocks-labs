@@ -1,5 +1,5 @@
 ---
-title: Kubeblocks Tutorial 101 - Getting Started
+title: KubeBlocks Tutorial 101 - Getting Started
 description: |
   Learn how to run any database on Kubernetes with KubeBlocks!
 
