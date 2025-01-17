@@ -94,11 +94,6 @@ tagz:
   - databases
 
 tasks:
-  init_use_docker_hub_mirror:
-    init: true
-    run: |
-      echo 'DOCKER_OPTS="${DOCKER_OPTS} --registry-mirror=https://mirror.gcr.io"' >> /etc/default/docker
-      systemctl restart docker
 
   # 1) Initialization task
   init_task_1:
@@ -111,11 +106,6 @@ tasks:
       kubectl create -f https://github.com/apecloud/kubeblocks/releases/download/$KB_VERSION/kubeblocks_crds.yaml
       helm repo add kubeblocks https://apecloud.github.io/helm-charts
       helm repo update
-      # helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 0.9.2 \
-      # --set image.registry=docker.io \
-      # --set dataProtection.image.registry=docker.io \
-      # --set addonChartsImage.registry=docker.io \
-      # --create-namespace
       helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 0.9.2 --create-namespace
       kbcli addon enable mysql --set image.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com --set images.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
       kubectl create namespace demo
@@ -207,15 +197,16 @@ tasks:
     needs:
       - verify_mysql_pod_ready
     run: |
-      output="$(kubectl get opsrequest mysql-upgrade -n demo -o jsonpath='{.status.status}' 2>&1)"
-      echo "controlplane \$ kubectl get opsrequest mysql-upgrade -n demo -o jsonpath='{.status.status}'"
+      output="$(kubectl get opsrequest mysql-upgrade -n demo | grep Succeed)"
+      echo "controlplane $ kubectl get opsrequest mysql-upgrade -n demo | grep Succeed"
       echo "$output"
 
-      if [ "$output" = "Succeed" ]; then
-        echo "done - cluster upgrade operation completed successfully"
+      if [ -n "$output" ]; then
+        echo "done - cluster upgrade operation completed successfully" 
         exit 0
       else
-        echo "upgrade not complete - current status: $output"
+        status=$(kubectl get opsrequest mysql-upgrade -n demo')
+        echo "upgrade not complete - current status: $status"
         exit 1
       fi
 ---
@@ -379,6 +370,14 @@ EOF
 
 This instructs KubeBlocks to begin upgrading the `mycluster` to `mysql-8.4.2`.
 
+**2\. Monitor the rolling update**:
+
+```bash
+kubectl get pods -n demo --watch
+```
+
+You should see the Pods being updated one by one.
+
 ::simple-task
 ---
 :tasks: tasks
@@ -391,15 +390,7 @@ Waiting for the MySQL Cluster to be upgraded to version `mysql-8.4.2`...
 Yay! Your MySQL cluster has been successfully upgraded to version `mysql-8.4.2`. 🎉
 ::
 
-**2\. Monitor the rolling update**:
-
-```bash
-kubectl get pods -n demo
-```
-
-You should see the Pods being updated one by one.
-
-**2\. Validate** that the cluster remains operational:
+**3\. Validate** that the cluster remains operational:
 
 - **Check Pod Status**: Ensure each Pod transitions through `Running` and `Ready` states in a sequence.
 - **Confirm New Version**: Once all Pods have been upgraded, you can connect to MySQL and run:
