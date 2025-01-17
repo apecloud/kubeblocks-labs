@@ -205,7 +205,7 @@ tasks:
         echo "done - cluster upgrade operation completed successfully" 
         exit 0
       else
-        status=$(kubectl get opsrequest mysql-upgrade -n demo')
+        status=$(kubectl get opsrequest mysql-upgrade -n demo)
         echo "upgrade not complete - current status: $status"
         exit 1
       fi
