@@ -111,13 +111,13 @@ tasks:
       kubectl create -f https://github.com/apecloud/kubeblocks/releases/download/$KB_VERSION/kubeblocks_crds.yaml
       helm repo add kubeblocks https://apecloud.github.io/helm-charts
       helm repo update
-      helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 0.9.2 \
-      --set image.registry=docker.io \
-      --set dataProtection.image.registry=docker.io \
-      --set addonChartsImage.registry=docker.io \
-      --create-namespace
-#      helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 0.9.2 --create-namespace
-#      kbcli addon enable mysql --set image.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com --set images.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
+      # helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 0.9.2 \
+      # --set image.registry=docker.io \
+      # --set dataProtection.image.registry=docker.io \
+      # --set addonChartsImage.registry=docker.io \
+      # --create-namespace
+      helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 0.9.2 --create-namespace
+      kbcli addon enable mysql --set image.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com --set images.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
       kubectl create namespace demo
       cat <<EOF | kubectl apply -f -
       apiVersion: apps.kubeblocks.io/v1alpha1
