@@ -190,6 +190,22 @@ tasks:
         echo "not ready yet"
         exit 1
       fi
+
+  verify_cluster_upgrade:
+    needs:
+      - verify_mysql_pod_ready
+    run: |
+      output="$(kubectl get cluster mycluster -n demo -o jsonpath='{.spec.clusterVersionRef}' 2>&1)"
+      echo "controlplane \$ kubectl get cluster mycluster -n demo -o jsonpath='{.spec.clusterVersionRef}'"
+      echo "$output"
+
+      if [ "$output" = "mysql-8.4.2" ]; then
+        echo "done - cluster version successfully patched to mysql-8.4.2"
+        exit 0
+      else
+        echo "patch not complete - current version: $output"
+        exit 1
+      fi
 ---
 
 Welcome to the **second chapter** of our **KubeBlocks** tutorial series!
@@ -344,6 +360,18 @@ kubectl patch cluster mycluster -n demo --type merge -p '
 ```
 
 This instructs KubeBlocks to begin upgrading the `mycluster` to `mysql-8.4.2`.
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_cluster_upgrade
+---
+#active
+Waiting for the MySQL Cluster to be upgraded to version `mysql-8.4.2`...
+
+#completed
+Yay! Your MySQL cluster has been successfully upgraded to version `mysql-8.4.2`. 🎉
+::
 
 **2\. Monitor the rolling update**:
 
