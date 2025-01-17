@@ -94,6 +94,12 @@ tagz:
   - databases
 
 tasks:
+  init_use_docker_hub_mirror:
+    init: true
+    run: |
+      echo 'DOCKER_OPTS="${DOCKER_OPTS} --registry-mirror=https://mirror.gcr.io"' >> /etc/default/docker
+      systemctl restart docker
+
   # 1) Initialization task
   init_task_1:
     init: true
@@ -110,6 +116,8 @@ tasks:
       --set dataProtection.image.registry=docker.io \
       --set addonChartsImage.registry=docker.io \
       --create-namespace
+#      helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 0.9.2 --create-namespace
+#      kbcli addon enable mysql --set image.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com --set images.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
       kubectl create namespace demo
       cat <<EOF | kubectl apply -f -
       apiVersion: apps.kubeblocks.io/v1alpha1
@@ -199,15 +207,15 @@ tasks:
     needs:
       - verify_mysql_pod_ready
     run: |
-      output="$(kubectl get cluster mycluster -n demo -o jsonpath='{.spec.clusterVersionRef}' 2>&1)"
-      echo "controlplane \$ kubectl get cluster mycluster -n demo -o jsonpath='{.spec.clusterVersionRef}'"
+      output="$(kubectl get opsrequest mysql-upgrade -n demo -o jsonpath='{.status.status}' 2>&1)"
+      echo "controlplane \$ kubectl get opsrequest mysql-upgrade -n demo -o jsonpath='{.status.status}'"
       echo "$output"
 
-      if [ "$output" = "mysql-8.4.2" ]; then
-        echo "done - cluster version successfully patched to mysql-8.4.2"
+      if [ "$output" = "Succeed" ]; then
+        echo "done - cluster upgrade operation completed successfully"
         exit 0
       else
-        echo "patch not complete - current version: $output"
+        echo "upgrade not complete - current status: $output"
         exit 1
       fi
 ---
@@ -348,19 +356,25 @@ mysql-8.4.2          mysql                Available   2m56s
 
 Let’s say you want to upgrade from `mysql-8.0.33` to **`mysql-8.4.2`**. KubeBlocks will:
 
-1. **Patch** the `Cluster` resource to request the new version.
+1. **Create a OpsRequest** to instruct `KubeBlocks Operator` to upgrade the cluster.
 2. **Sequentially** take each secondary offline, upgrade it, bring it back up, and then move on.
 3. **Upgrade** the primary last, typically with a secondary promoted temporarily if necessary to avoid downtime.
 
 **1\. Patch the cluster**:
 
 ```bash
-kubectl patch cluster mycluster -n demo --type merge -p '
-{
-  "spec": {
-    "clusterVersionRef": "mysql-8.4.2"
-  }
-}'
+kubectl apply -f - <<EOF
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: OpsRequest
+metadata:
+  name: mysql-upgrade
+  namespace: demo
+spec:
+  clusterRef: mycluster
+  type: Upgrade 
+  upgrade:
+    clusterVersionRef: mysql-8.4.2
+EOF
 ```
 
 This instructs KubeBlocks to begin upgrading the `mycluster` to `mysql-8.4.2`.
