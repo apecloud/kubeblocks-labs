@@ -319,13 +319,6 @@ When you run `kubectl get pods -n demo` again, you’ll see that the removed Pod
 
 ## 2. Upgrade a Cluster
 
-::image-box
----
-src: __static__/mysql-upgrade-process.png
-alt: 'Operator Capability Level'
----
-::
-
 Upgrading your database version is a key maintenance task. KubeBlocks orchestrates a **rolling upgrade**—updating pods one at a time to keep your database highly available throughout the process.
 
 ### 2.1 View Available MySQL Versions
@@ -398,6 +391,33 @@ kubectl -n demo exec -it mycluster-mysql-0 -- bash -c 'mysql -h127.0.0.1 -uroot 
 to ensure that the reported version matches `8.4.2`.
 
 If everything goes smoothly, you’ve completed a **seamless rolling upgrade** with minimal or zero downtime. Your applications should remain connected throughout.
+
+### 2.3 Understanding the Rolling Upgrade Process
+
+During the rolling upgrade, KubeBlocks follows a carefully orchestrated sequence:
+
+::image-box
+---
+src: __static__/mysql-upgrade-process.png
+alt: 'Operator Capability Level'
+---
+::
+
+1. **Initial State**: mysql-2 serves as Primary, with mysql-0 and mysql-1 as Secondaries.
+2. **Secondary Upgrades**:
+    - First upgrades mysql-0 (Secondary)
+    - Then upgrades mysql-1 (Secondary)
+3. **Primary Switch**:
+    - Promotes mysql-0 to become the new Primary
+4. **Final Upgrade**:
+    - Upgrades the original Primary (mysql-2)
+    - mysql-2 becomes a Secondary in the new configuration
+
+This careful sequencing ensures:
+- Minimal downtime during the upgrade
+- Data consistency throughout the process
+- Automatic handling of Primary/Secondary roles
+- Safe rollback capability if issues occur
 
 ---
 
