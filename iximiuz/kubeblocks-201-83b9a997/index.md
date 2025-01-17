@@ -319,6 +319,13 @@ When you run `kubectl get pods -n demo` again, you’ll see that the removed Pod
 
 ## 2. Upgrade a Cluster
 
+::image-box
+---
+src: __static__/mysql-upgrade-process.png
+alt: 'Operator Capability Level'
+---
+::
+
 Upgrading your database version is a key maintenance task. KubeBlocks orchestrates a **rolling upgrade**—updating pods one at a time to keep your database highly available throughout the process.
 
 ### 2.1 View Available MySQL Versions
