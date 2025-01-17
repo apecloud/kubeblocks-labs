@@ -227,7 +227,7 @@ alt: 'Operator Capability Level'
 To save you time, we’ve **automatically installed KubeBlocks** and created a **3-replica MySQL cluster** in the background. It may take a few minutes to complete the setup—feel free to proceed, but keep in mind that some commands might need to wait until the installation is fully finished.
 
 If you’re new to KubeBlocks or missed the first tutorial, see:
-[Kubeblocks Tutorial 101 – Getting Started](https://labs.iximiuz.com/tutorials/kubeblocks-101-99db8bca)
+[Kubeblocks Tutorial 101 – Getting Started](/tutorials/kubeblocks-101-99db8bca)
 
 ::simple-task
 ---
