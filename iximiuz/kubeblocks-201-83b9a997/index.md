@@ -194,7 +194,6 @@ tasks:
 
 Welcome to the **second chapter** of our **KubeBlocks** tutorial series!
 
-根据下面的内容，重写这一段
 In this guide, we will focus on **seamless upgrades** and **basic maintenance**—two core features that showcase KubeBlocks’ ability to run **any database** at **Operator Capability Level 5**, suitable for **production-grade** operations. Whether you’re managing a small dev cluster or a large-scale enterprise environment, KubeBlocks streamlines the entire database lifecycle on Kubernetes.
 
 ::image-box
@@ -258,7 +257,9 @@ By default, a **3-replica** MySQL cluster named `mycluster` has been created in 
 ```bash
 kubectl get pods -n demo
 ```
-Output: 
+
+Example output:
+
 ```
 NAME                READY   STATUS    RESTARTS   AGE
 mycluster-mysql-0   4/4     Running   0          16s
@@ -268,39 +269,53 @@ mycluster-mysql-2   4/4     Running   0          16s
 
 ### 1.2. High Availability Demonstration
 
+KubeBlocks automatically configures one of these Pods as the **primary** database instance, while the rest act as **secondaries**. To see which is which, run:
+
 ```bash
 kubectl get pods -n demo -o yaml | grep kubeblocks.io/role
 ```
-Output:
+
+You may see something like:
+
 ```
 kubeblocks.io/role: secondary
 kubeblocks.io/role: primary
 kubeblocks.io/role: secondary
 ```
 
-读者可能不是mycluster-mysql-1，而是其他pod，所以这里要说明一下。
-As shown, `mycluster-mysql-1` is the **primary**, while the others are **secondary**. Let’s try removing the primary Pod to see how KubeBlocks handles high availability:
+In this example, `mycluster-mysql-1` is the **primary**, but keep in mind the actual Pod name assigned as primary in your environment could be different (e.g., `mycluster-mysql-0` or `mycluster-mysql-2`).
+
+To illustrate KubeBlocks’ built-in **High Availability (HA)**, try **removing the primary Pod**:
 
 ```bash
 kubectl delete pod mycluster-mysql-1 -n demo
 ```
 
-A new Pod (`mycluster-mysql-1`) will be created, and KubeBlocks will automatically elect one of the secondaries as the new primary. All data remains intact—demonstrating KubeBlocks’ built-in HA capabilities.
+Shortly after deletion, KubeBlocks will:
+
+1. **Promote** one of the secondaries to become the new primary.
+2. **Restart** the removed Pod (e.g., `mycluster-mysql-1`).
+3. **Maintain** data consistency across replicas throughout the process.
+
+When you run `kubectl get pods -n demo` again, you’ll see that the removed Pod is **recreated** and that a **new primary** has been automatically elected. No manual intervention is needed, and **no data is lost**. This seamless recovery demonstrates why KubeBlocks is ideal for production-grade environments where minimal downtime is crucial.
 
 ---
 
 ## 2. Upgrade a Cluster
+
+Upgrading your database version is a key maintenance task. KubeBlocks orchestrates a **rolling upgrade**—updating pods one at a time to keep your database highly available throughout the process.
+
 ### 2.1 View Available MySQL Versions
 
-Before upgrading:
-- **Check the current cluster version** and the readiness of your setup.
+Before starting an upgrade, **check which MySQL versions** KubeBlocks can deploy:
 
 ```bash
-# Look for MySQL versions recognized by KubeBlocks
 kubectl get clusterversion | grep mysql
 ```
-```bash
-laborant@dev-machine:~$ kubectl get clusterversion | grep mysql
+
+Example output (your environment may differ):
+
+```
 Warning: The ClusterVersion CRD has been deprecated since 0.9.0
 ac-mysql-8.0.30      apecloud-mysql       Available   2m55s
 ac-mysql-8.0.30-1    apecloud-mysql       Available   2m55s
@@ -309,13 +324,15 @@ mysql-8.0.33         mysql                Available   2m56s
 mysql-8.4.2          mysql                Available   2m56s
 ```
 
----
-
 ### 2.2 Performing a Rolling Upgrade
 
-Now, let’s **perform a rolling upgrade** to a newer MySQL version. KubeBlocks orchestrates this process Pod-by-Pod to maintain availability.
+Let’s say you want to upgrade from `mysql-8.0.33` to **`mysql-8.4.2`**. KubeBlocks will:
 
-1. **Edit the `Cluster` resource** to bump your MySQL version, for example to `mysql-8.4.2` (fictional for demo):
+1. **Patch** the `Cluster` resource to request the new version.
+2. **Sequentially** take each secondary offline, upgrade it, bring it back up, and then move on.
+3. **Upgrade** the primary last, typically with a secondary promoted temporarily if necessary to avoid downtime.
+
+**1\. Patch the cluster**:
 
 ```bash
 kubectl patch cluster mycluster -n demo --type merge -p '
@@ -326,15 +343,32 @@ kubectl patch cluster mycluster -n demo --type merge -p '
 }'
 ```
 
-2. **Verify** that the Pods upgrade sequentially with minimal or zero downtime.
+This instructs KubeBlocks to begin upgrading the `mycluster` to `mysql-8.4.2`.
+
+**2\. Monitor the rolling update**:
 
 ```bash
 kubectl get pods -n demo
 ```
 
+You should see the Pods being updated one by one.
+
+**2\. Validate** that the cluster remains operational:
+
+- **Check Pod Status**: Ensure each Pod transitions through `Running` and `Ready` states in a sequence.
+- **Confirm New Version**: Once all Pods have been upgraded, you can connect to MySQL and run:
+```bash
+kubectl -n demo exec -it mycluster-mysql-0 -- bash -c 'mysql -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD -e "SELECT @@version;"'
+```
+to ensure that the reported version matches `8.4.2`.
+
+If everything goes smoothly, you’ve completed a **seamless rolling upgrade** with minimal or zero downtime. Your applications should remain connected throughout.
+
 ---
 
 ## What’s Next?
 
-- **Explore** other databases (PostgreSQL, Redis, MongoDB, Elasticsearch, Qdrant, etc.) on KubeBlocks.
-- **Continue** to the next tutorial, where we’ll dive into **full lifecycle management** (backups, restores, and failover), further showcasing how KubeBlocks simplifies production-grade database operations.
+- **Explore** Other Databases: Extend the same principles to PostgreSQL, Redis, MongoDB, Elasticsearch, Qdrant, and many more.
+- **Advance** to the Next Tutorial: Discover **full lifecycle management**—including backups, restores, and failover—showcasing how KubeBlocks handles production-grade database operations at **Operator Capability Level 5**.
+
+By leveraging KubeBlocks’ built-in intelligence for upgrade orchestration and HA failover, you can keep your database versions current and reliable with ease.
