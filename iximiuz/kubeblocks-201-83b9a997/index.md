@@ -8,6 +8,10 @@ kind: tutorial
 playground:
   name: k3s
 
+   # Protect the playground's registry (registry.iximiuz.com) with a username and password.
+   # default: no authentication
+  registryAuth: testuser:testpassword
+
   tabs:
     - id: ide-dev-machine
       kind: ide
@@ -76,7 +80,7 @@ playground:
         cpuCount: 2
         ramSize: "4G"
 
-cover: __static__/mysql-upgrade-process.png
+cover: __static__/mysql-upgrade-process-c.png
 
 createdAt: 2025-01-16
 updatedAt: 2025-01-16
@@ -398,7 +402,7 @@ During the rolling upgrade, KubeBlocks follows a carefully orchestrated sequence
 
 ::image-box
 ---
-src: __static__/mysql-upgrade-process.png
+src: __static__/mysql-upgrade-process-c.png
 alt: 'Operator Capability Level'
 ---
 ::
