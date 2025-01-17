@@ -1,5 +1,5 @@
 ---
-title: Kubeblocks Tutorial 201 - Seamless Upgrades & Basic Maintenance
+title: Kubeblocks Tutorial 201 - Seamless Upgrades
 description: |
   Learn how to run any database on Kubernetes with KubeBlocks!
 
