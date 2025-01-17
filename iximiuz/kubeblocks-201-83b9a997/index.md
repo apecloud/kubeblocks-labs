@@ -76,7 +76,7 @@ playground:
         cpuCount: 2
         ramSize: "4G"
 
-cover: __static__/kubeblocks-arch.png
+cover: __static__/mysql-upgrade-process.png
 
 createdAt: 2025-01-16
 updatedAt: 2025-01-16
