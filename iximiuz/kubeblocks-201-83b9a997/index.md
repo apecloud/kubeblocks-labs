@@ -194,6 +194,7 @@ tasks:
 
 Welcome to the **second chapter** of our **KubeBlocks** tutorial series!
 
+根据下面的内容，重写这一段
 In this guide, we will focus on **seamless upgrades** and **basic maintenance**—two core features that showcase KubeBlocks’ ability to run **any database** at **Operator Capability Level 5**, suitable for **production-grade** operations. Whether you’re managing a small dev cluster or a large-scale enterprise environment, KubeBlocks streamlines the entire database lifecycle on Kubernetes.
 
 ::image-box
@@ -209,8 +210,6 @@ To save you time, we’ve **automatically installed KubeBlocks** and created a *
 
 If you’re new to KubeBlocks or missed the first tutorial, see:
 [Kubeblocks Tutorial 101 – Getting Started](https://labs.iximiuz.com/tutorials/kubeblocks-101-99db8bca)
-
-When you’re ready, you can verify the environment with the following tasks:
 
 ::simple-task
 ---
@@ -279,6 +278,7 @@ kubeblocks.io/role: primary
 kubeblocks.io/role: secondary
 ```
 
+读者可能不是mycluster-mysql-1，而是其他pod，所以这里要说明一下。
 As shown, `mycluster-mysql-1` is the **primary**, while the others are **secondary**. Let’s try removing the primary Pod to see how KubeBlocks handles high availability:
 
 ```bash
@@ -289,7 +289,8 @@ A new Pod (`mycluster-mysql-1`) will be created, and KubeBlocks will automatical
 
 ---
 
-## 2. Preparing for an Upgrade
+## 2. Upgrade a Cluster
+### 2.1 View Available MySQL Versions
 
 Before upgrading:
 - **Check the current cluster version** and the readiness of your setup.
@@ -310,60 +311,30 @@ mysql-8.4.2          mysql                Available   2m56s
 
 ---
 
-## 3. Performing a Rolling Upgrade
+### 2.2 Performing a Rolling Upgrade
 
 Now, let’s **perform a rolling upgrade** to a newer MySQL version. KubeBlocks orchestrates this process Pod-by-Pod to maintain availability.
 
 1. **Edit the `Cluster` resource** to bump your MySQL version, for example to `mysql-8.4.2` (fictional for demo):
 
-   ```bash
-   kubectl edit cluster mycluster -n demo
-   # Modify:
-   # spec:
-   #   clusterVersionRef: mysql-8.4.2
-   ```
+```bash
+kubectl patch cluster mycluster -n demo --type merge -p '
+{
+  "spec": {
+    "clusterVersionRef": "mysql-8.4.2"
+  }
+}'
+```
 
-2. **Monitor the upgrade** process:
-
-   ```bash
-   kbcli cluster describe-ops <your-ops-request-name> -n demo
-   ```
-
-3. **Verify** that the Pods upgrade sequentially with minimal or zero downtime.
-
----
-
-## 4. Automated Upgrades
-
-To truly embrace “seamless upgrades,” you can configure **auto-upgrade policies** so that minor or patch releases are applied automatically—no manual intervention needed. KubeBlocks ensures a safe, rolling approach, typically starting with secondaries before handling the primary.
+2. **Verify** that the Pods upgrade sequentially with minimal or zero downtime.
 
 ```bash
-# Check MySQL Pod states again
 kubectl get pods -n demo
-# You should see sequential restarts or upgrades, starting with secondaries.
 ```
 
 ---
 
-## 6. Post-Maintenance Validation
-
-After the upgrade (or any maintenance operation), **validate**:
-
-- **Logs & Metrics**: Confirm no errors or warnings in the logs.
-- **Connectivity**: Ensure apps or clients can still connect to the cluster.
-- **Replication & Roles**: Check that the primary/secondary relationships are intact.
-
----
-
-## 9. What’s Next?
+## What’s Next?
 
 - **Explore** other databases (PostgreSQL, Redis, MongoDB, Elasticsearch, Qdrant, etc.) on KubeBlocks.
 - **Continue** to the next tutorial, where we’ll dive into **full lifecycle management** (backups, restores, and failover), further showcasing how KubeBlocks simplifies production-grade database operations.
-
----
-
-## Final Thoughts
-
-KubeBlocks provides a **production-ready** approach to database management on Kubernetes. By mastering **seamless upgrades** and basic maintenance tasks, you’re well on your way to tackling more advanced features such as backup, restore, high availability, and beyond—all while harnessing the power of Kubernetes orchestration.
-
-Stay tuned for future tutorials in this series, where we’ll explore even more of KubeBlocks’ capabilities and show you how to run **any database** with confidence at **Operator Capability Level 5**. Enjoy your newfound mastery of cloud-native database operations!
