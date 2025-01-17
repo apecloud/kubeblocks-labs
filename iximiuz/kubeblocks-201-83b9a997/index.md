@@ -194,7 +194,7 @@ tasks:
 
 Welcome to the **second chapter** of our **KubeBlocks** tutorial series!
 
-In this guide, we will focus on **seamless upgrades** and **basic maintenance**—two core features that showcase KubeBlocks’ ability to run **any database** at **Operator Capability Level 5**, suitable for **production-grade** operations. Whether you’re managing a small dev cluster or a large-scale enterprise environment, KubeBlocks streamlines the entire database lifecycle on Kubernetes.
+In this guide, we focus on **seamless upgrades**—a key feature that aligns with **Operator Capability Level 2**. You’ll see how KubeBlocks keeps your databases updated **with minimal downtime**, even in a production-grade environment. Whether you’re managing a small dev cluster or a large-scale enterprise deployment, KubeBlocks streamlines the entire **database lifecycle** on Kubernetes, and can scale up to even more advanced capabilities.
 
 ::image-box
 ---
@@ -368,7 +368,7 @@ If everything goes smoothly, you’ve completed a **seamless rolling upgrade** w
 
 ## What’s Next?
 
-- **Explore** Other Databases: Extend the same principles to PostgreSQL, Redis, MongoDB, Elasticsearch, Qdrant, and many more.
-- **Advance** to the Next Tutorial: Discover **full lifecycle management**—including backups, restores, and failover—showcasing how KubeBlocks handles production-grade database operations at **Operator Capability Level 5**.
+- **Explore Other Databases**: Apply the same upgrade principles to PostgreSQL, Redis, MongoDB, Elasticsearch, Qdrant, and more.
+- **Advance to the Next Tutorial**: Discover **full lifecycle management**—including backups, restores, and failover—showing how KubeBlocks delivers robust database operations that approach **higher Operator Capability Levels**.
 
 By leveraging KubeBlocks’ built-in intelligence for upgrade orchestration and HA failover, you can keep your database versions current and reliable with ease.
