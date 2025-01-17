@@ -210,23 +210,7 @@ tasks:
         exit 1
       fi
     hintcheck: |
-      if kubectl get opsrequest -n demo | grep mysql-upgrade; then
-        status=$(kubectl get opsrequest -n demo | grep mysql-upgrade | awk '{print $4}')
-        if [ "$status" = "Failed" ]; then
-          echo "The upgrade OpsRequest failed. You may need to create a new OpsRequest."
-          exit 0
-        elif [ "$status" = "Succeed" ]; then
-          echo "The upgrade has completed successfully."
-          exit 0
-        else
-          echo "The upgrade is in progress. Current status:"
-          kubectl get opsrequest -n demo
-          exit 0
-        fi
-      else
-        echo "No upgrade OpsRequest found. Did you create the OpsRequest?"
-        exit 0
-      fi
+      kubectl get opsrequest -n demo | grep mysql-upgrade
 ---
 
 Welcome to the **second chapter** of our **KubeBlocks** tutorial series!
