@@ -387,6 +387,13 @@ Below is a **simplified** version of the *Backup Basics* section, emphasizing th
 
 ## 2. Backup Basics
 
+::image-box
+---
+src: __static__/backup-restore.png
+alt: 'Backup & Restore'
+---
+::
+
 KubeBlocks provides **comprehensive backup and restore capabilities** to protect your database data. All backups require a **BackupRepo**, where backup artifacts are stored—this can be **object storage** or **PVC-based** volumes.
 
 Under the hood, KubeBlocks supports **physical backup tools** (like XtraBackup for MySQL) and **volume snapshots**, giving you the flexibility to choose the method that best fits your workload. You can perform **on-demand** backups for immediate data protection or set up **scheduled** backups to automatically capture and manage your data over time.
