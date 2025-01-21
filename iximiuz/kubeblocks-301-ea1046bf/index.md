@@ -233,6 +233,61 @@ tasks:
       fi
     hintcheck: |
       kubectl get opsrequest -n demo | grep mysql-upgrade
+
+  verify_trigger_backup:
+    needs:
+      - verify_mysql_pod_ready
+    run: |
+      output="$(kubectl get backup -n demo)"
+      echo "controlplane $ kubectl get backup -n demo"
+      echo "$output"
+
+      if [ -n "$output" ]; then
+        echo "done - backup was triggered successfully"
+        exit 0
+      else
+        echo "backup not found"
+        exit 1
+      fi
+    hintcheck: |
+      kubectl get backup -n demo
+
+  verify_backup_progress:
+    needs:
+      - verify_trigger_backup
+    run: |
+      output="$(kubectl get backup mybackup -n demo | grep Completed)"
+      echo "controlplane $ kubectl get backup mybackup -n demo | grep Completed"
+      echo "$output"
+
+      if [ -n "$output" ]; then
+        echo "done - backup operation completed successfully"
+        exit 0
+      else
+        status=$(kubectl get backup mybackup -n demo)
+        echo "backup not complete - current status: $status"
+        exit 1
+      fi
+    hintcheck: |
+      kubectl get backup -n demo | grep mybackup
+
+  verify_restore_trigger:
+    needs:
+      - verify_backup_progress
+    run: |
+      output="$(kubectl get cluster myrestore -n demo)"
+      echo "controlplane $ kubectl get cluster myrestore -n demo"
+      echo "$output"
+
+      if [ -n "$output" ]; then
+        echo "done - restore cluster was created successfully"
+        exit 0
+      else
+        echo "restore cluster not found"
+        exit 1
+      fi
+    hintcheck: |
+      kubectl get cluster -n demo
 ---
 
 Welcome to the **third chapter** of our **KubeBlocks** tutorial series!
@@ -419,6 +474,18 @@ EOF
 - `backupMethod: xtrabackup` indicates we’re using the **xtrabackup** tool.
 - `backupPolicyName: mycluster-mysql-backup-policy` references the default MySQL backup policy.
 
+::simple-task
+---
+:tasks: tasks
+:name: verify_trigger_backup
+---
+#active
+Confirming the backup was triggered...
+
+#completed
+Great! The backup was triggered successfully.
+::
+
 2. **Verify the Backup**:
 
 After applying the resource, you can:
@@ -426,6 +493,18 @@ After applying the resource, you can:
 ```bash
 kubectl get backup -n demo
 ```
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_backup_progress
+---
+#active
+Checking backup progress...
+
+#completed
+Great! The backup has completed successfully.
+::
 
 Wait for the STATUS to become `Completed` (It may take about a minute).
 
@@ -459,6 +538,18 @@ The backup artifact now resides in the configured **BackupRepo** (e.g., S3, MinI
 ```bash
 kbcli cluster restore myrestore --backup mybackup -n demo
 ```
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_restore_trigger
+---
+#active
+Confirming the restore cluster was created...
+
+#completed
+Great! The restore cluster was created successfully.
+::
 
 ::details-box
 ---
