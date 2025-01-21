@@ -251,7 +251,7 @@ alt: 'Operator Capability Level'
 To save you time, we’ve **automatically installed KubeBlocks** and created a **3-replica MySQL cluster** in the background. It may take a few minutes to complete the setup—feel free to proceed, but keep in mind that some commands might need to wait until the installation is fully finished.
 
 If you’re new to KubeBlocks or missed the previous tutorials, see:
-- [KubeBlocks Tutorial 101 – Getting Started](/tutorials/kubeblocks-101-99db8bca) 
+- [KubeBlocks Tutorial 101 – Getting Started](/tutorials/kubeblocks-101-99db8bca)
 - [KubeBlocks Tutorial 201 - Seamless Upgrades](/tutorials/kubeblocks-201-83b9a997)
 
 ::simple-task
@@ -292,18 +292,7 @@ Yay! Your MySQL cluster is ready. 🎉
 
 ---
 
-## 1. Introduction & Recap
-
-### 1.1 Operator Capability Level 3
-
-- **Operator Capability Level 3** moves beyond basic installation and upgrade tasks to include **day-2 operations** such as **backups, restores, and failovers**.
-- In our [Tutorial 201](#), we demonstrated **seamless upgrades** of a MySQL cluster with minimal impact on applications.
-- Now, we’ll explore **backups and restores**, which are critical for:
-    - **Disaster recovery**: Safeguard against unexpected data loss.
-    - **Environment cloning**: Quickly spin up test or dev environments from production data.
-    - **Data archiving**: Keep historical snapshots of your database state.
-
-### 1.2 Reviewing Current Cluster
+## 1. Introduction
 
 In this lab environment, you should already have:
 - **KubeBlocks** installed.
@@ -326,32 +315,28 @@ mycluster-mysql-2   4/4     Running   0          2m
 
 This same cluster will be used to demonstrate **backup & restore** features.
 
+**Optional: Add Sample Data**  
+Before proceeding, you may want to **connect to your MySQL cluster** and create some test data. For example:
+
+```bash
+kbcli cluster connect mycluster -n demo
+```
+
+Once connected, create your own database, tables, and sample records (e.g., `CREATE DATABASE test;`, `CREATE TABLE test.mytable ...;`, `INSERT INTO test.mytable ...;`) so that you can confirm the backup and restore processes successfully carry over any data you create.
+
 ---
 
 ## 2. Backup Basics
 
-### 2.1 Why Backup & Restore Matter
-
-Most production databases **require robust backup strategies** for:
-
-1. **Disaster Recovery (DR)**: In cases of hardware failures, software bugs, or accidental deletions.
-2. **Environment Cloning**: Quickly replicate production data for development or QA.
-3. **Data Archiving**: Retain snapshots for compliance or historical analysis.
-
-**KubeBlocks** leverages operator intelligence to handle backups in an **application-aware** manner, ensuring **transaction consistency** and **seamless orchestration** with Kubernetes.
-
-### 2.2 Supported Backup Types & Storage
+### 2.1 Supported Backup Types & Storage
+(增加一些kubeblocks的backup内容介绍，参考：https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/introduction)
 
 1. **Full vs. Incremental**: Depending on your storage and database engine, you may configure different backup strategies (incremental backup is engine-dependent and might not always be supported).
 2. **Storage Configurations**:
     - **Object storage** such as S3, GCS, OSS, COS, or MinIO (S3-compatible).
     - **PVC-based storage** on Kubernetes.
-3. **Backup CRDs / Custom Resources**:
-    - **BackupRepo**: A Custom Resource that defines the storage repository for backups.
-    - **Backup**: A Custom Resource that defines when and how backups are taken.
-    - **OpsRequest** (type=Backup) in certain cases, or **Backup** CR under `dataprotection.kubeblocks.io/v1alpha1`.
 
-In **KubeBlocks**, you can create multiple **BackupRepos** to suit different scenarios (e.g., separate object storage for different lines of business or multi-region redundancy). For simplicity, **a default backup repository** has already been created in this tutorial environment.
+In **KubeBlocks**, you can create multiple **BackupRepos** to handle different backup needs (e.g., for separate business units or multi-region setups). For simplicity, **a default backup repository** has already been created for this tutorial.
 
 To verify the existing BackupRepo:
 
@@ -359,94 +344,102 @@ To verify the existing BackupRepo:
 kubectl get backuprepo -n demo
 ```
 
+::details-box
+---
+:summary: You should be able to see output like this
+---
+```bash
+NAME         STATUS   STORAGEPROVIDER   ACCESSMETHOD   DEFAULT   AGE
+backuprepo   Ready    pvc               Mount          true      45m
+```
+::
+
 ---
 
 ## 3. Creating a Backup
 
-### 3.1 Backup Workflow Overview
+### 3.1 Backup Methods
 
-When you trigger a backup in **KubeBlocks**:
+**KubeBlocks** supports a variety of backup methods, which may differ based on the database engine and the underlying storage. In general:
 
-1. The operator looks at the **Backup** (or **OpsRequest**) resource.
-2. It checks which **BackupRepo** is specified (or defaults to the configured one).
-3. It **orchestrates** the backup process, ensuring minimal disruption to the running MySQL cluster.
-4. The resulting **backup artifact** is stored in the designated repository (e.g., an S3 bucket or a PVC).
+- **Physical backup** (e.g., `xtrabackup`) captures the actual data files on disk.
+- **Volume snapshot** leverages cloud-native snapshot capabilities of the storage layer.
 
-**KubeBlocks** provides different backup methods for different databases. In MySQL, for instance, you might use:
-- **xtrabackup** (physical backup tool).
-- **volume-snapshot** (utilizing cloud-native volume snapshots).
+The approach you choose can vary depending on your **database engine**, **storage provider**, and **performance requirements**. For MySQL, two common methods are:
+
+- **xtrabackup**: Uses the Percona XtraBackup tool for online backups.
+- **volume-snapshot**: Uses Kubernetes volume snapshot functionality if supported by your storage.
 
 To see which backup methods are available for `mycluster`:
-
-```bash
-kbcli cluster list-backup-policy mycluster -n demo
-```
-
-Then describe the default policy:
 
 ```bash
 kbcli cluster describe-backup-policy mycluster -n demo
 ```
 
-You will typically see two methods for MySQL:
-- **xtrabackup**: backups to object storage.
-- **volume-snapshot**: leverages volume snapshot capabilities.
+::details-box
+---
+:summary: You should be able to see output like this
+---
+```bash
+Summary:
+Name:               mycluster-mysql-backup-policy
+Cluster:            mycluster
+Namespace:          demo
+Default:            true
 
-### 3.2 Step-by-Step Backup Creation
+Backup Methods:
+NAME              ACTIONSET              SNAPSHOT-VOLUMES   
+xtrabackup        mysql-xtrabackup       false              
+volume-snapshot   mysql-volumesnapshot   true
+```
+::
+
+### 3.2 Create a Backup
 
 Below is a **minimal** example of creating a backup via YAML. We’ll use **xtrabackup** here:
 
 1. **Define the Backup Resource**:
-   ```bash
-   kubectl apply -f - <<-'EOF'
-   apiVersion: dataprotection.kubeblocks.io/v1alpha1
-   kind: Backup
-   metadata:
-     name: mybackup
-     namespace: demo
-   spec:
-     backupMethod: xtrabackup
-     backupPolicyName: mycluster-mysql-backup-policy
-   EOF
-   ```
 
-    - `backupMethod: xtrabackup` indicates we’re using the **xtrabackup** tool.
-    - `backupPolicyName: mycluster-mysql-backup-policy` references the default MySQL backup policy.
+```bash
+kubectl apply -f - <<-'EOF'
+apiVersion: dataprotection.kubeblocks.io/v1alpha1
+kind: Backup
+metadata:
+  name: mybackup
+  namespace: demo
+spec:
+  backupMethod: xtrabackup
+  backupPolicyName: mycluster-mysql-backup-policy
+EOF
+```
 
-2. **Apply the Backup**: (This is already done inline above via a multi-line `kubectl apply -f - ...`.)
+- `backupMethod: xtrabackup` indicates we’re using the **xtrabackup** tool.
+- `backupPolicyName: mycluster-mysql-backup-policy` references the default MySQL backup policy.
 
-3. **Monitor the Backup**:
+2. **Verify the Backup**:
 
-   ```bash
-   kubectl get pods -n demo --watch
-   ```
+After applying the resource, you can:
 
-   You may see a short-lived **backup job** or a Pod that performs the actual backup.
+```bash
+kubectl get backup -n demo
+```
 
-4. **Verify the Backup**:
-    - Check the `Backup` status:
+Wait for the STATUS to become `Completed`(It may take about a minute).
 
-      ```bash
-      kubectl get backup -n demo
-      kubectl describe backup mybackup -n demo
-      ```
+```bash
+NAME       POLICY                          METHOD       REPO         STATUS      TOTAL-SIZE   DURATION   CREATION-TIME          COMPLETION-TIME        EXPIRATION-TIME
+mybackup   mycluster-mysql-backup-policy   xtrabackup   backuprepo   Completed   1587198      55s        2025-01-21T10:03:35Z   2025-01-21T10:04:30Z
+```
 
-    - List backups associated with `mycluster` using `kbcli`:
+Here, `TOTAL-SIZE` shows the size of the backup, and `DURATION` indicates how long the backup process took.
 
-      ```bash
-      kbcli cluster list-backups mycluster -n demo
-      ```
+You can also check details:
 
-   The backup artifact (data) should now reside in the configured **BackupRepo** (e.g., an S3 bucket or a PVC).
+```bash
+kubectl describe backup mybackup -n demo
+```
 
-### 3.3 Validating the Backup
-
-- **Check Logs or KubeBlocks UI** (if available) to confirm the backup was created successfully.
-- Optionally, run:
-  ```bash
-  kbcli backup list -n demo
-  ```
-  to see all **Backup** resources in the `demo` namespace.
+The backup artifact now resides in the configured **BackupRepo** (e.g., S3, MinIO, or a PVC).
 
 ---
 
@@ -454,115 +447,89 @@ Below is a **minimal** example of creating a backup via YAML. We’ll use **xtra
 
 ### 4.1 Restore Workflow Overview
 
-**KubeBlocks** supports two typical restore scenarios:
+**KubeBlocks** supports creating a **new cluster** from an existing backup, allowing you to spin up a cloned environment. Under the hood, the operator retrieves the backup data from the specified **BackupRepo** and re-seeds the target MySQL cluster.
 
-1. **Overwrite an existing cluster**: For immediate disaster recovery.
-2. **Create a new cluster**: Spin up a cloned environment for testing, QA, or analytics.
+### 4.2 Executing the Restore
 
-Under the hood, the KubeBlocks operator orchestrates the restore by **retrieving the backup data** from the specified **BackupRepo** and **re-seeding** the target MySQL cluster.
-
-### 4.2 Preparing the Restore
-
-To restore from a previously created backup (e.g., `mybackup`), we need to either:
-- Use an **OpsRequest** of type `Restore`, or
-- Use the `kbcli cluster restore ...` command, which creates the relevant resources on your behalf.
-
-You’ll typically specify:
-- **backupRef**: Which backup to restore from.
-- **target cluster**: Where to restore the data.
-
-### 4.3 Executing the Restore
-
-Here’s a simple example using **`kbcli`**:
+1. **Restore the Backup**:
 
 ```bash
 kbcli cluster restore myrestore --backup mybackup -n demo
 ```
 
-This command instructs KubeBlocks to create a new cluster named `myrestore` from the `mybackup`. Alternatively, you can restore directly over your existing `mycluster` if that’s your intended scenario (though it’s generally safer to restore into a fresh cluster for testing first).
+::details-box
+---
+:summary: How to Restore data from backup using YAML
+---
+The `kbcli` command above is a convenience wrapper that ultimately applies YAML behind the scenes. For instance:
 
-1. **Apply the Restore Resource**: The command above automatically generates the needed restore specs.
+```bash
+kubectl apply -f - <<-'EOF'
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: Cluster
+metadata:
+  name: myrestore
+  namespace: demo
+  annotations:
+    kubeblocks.io/restore-from-backup: '{"mysql":{"name":"mybackup","namespace":"demo","connectionPassword":"Bw1cR15mzfldc9hzGuK4m1BZQOzha6aBb1i9nlvoBdoE9to4"}}'
+spec:
+  clusterDefinitionRef: apecloud-mysql
+  clusterVersionRef: ac-mysql-8.0.30
+  terminationPolicy: WipeOut
+  componentSpecs:
+    - name: mysql
+      componentDefRef: mysql
+      replicas: 3
+      volumeClaimTemplates:
+        - name: data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 20Gi
+EOF
+```
+
+Here, the annotation `kubeblocks.io/restore-from-backup` references the backup to use and the necessary credentials for restoration.
+::
+
 2. **Monitor the Restore Process**:
 
-   ```bash
-   kubectl get pods -n demo --watch
-   ```
+```bash
+kubectl get pods -n demo
+```
 
-   You’ll see new Pods (e.g., `myrestore-mysql-0`, etc.) come online and begin synchronization.
+You’ll see new Pods (e.g., `myrestore-mysql-0`, etc.) come online and begin synchronization.
 
 3. **Validate the New/Recovered Cluster**:
-    - Ensure each Pod transitions to `Running` and `Ready`.
-    - (Optional) Connect to MySQL and verify data:
 
-      ```bash
-      kubectl -n demo exec -it myrestore-mysql-0 -- \
-        mysql -h127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD -e "SELECT @@version;"
-      ```
+- Ensure each Pod transitions to `Running`.
+- Confirm that you can connect and that the data is correct:
 
-### 4.4 Pitfalls & Considerations
+```bash
+kbcli cluster connect myrestore -n demo
+```
 
-- **Downtime**: If you choose to overwrite an existing cluster, expect downtime. Restoring into a fresh cluster can mitigate downtime for production.
-- **Primary/Secondary Role Reassignments**: The operator will handle internal MySQL role transitions automatically.
-- **Best Practices**:
-    - **Test your backups regularly** to ensure they are valid and restorable.
-    - **Schedule backups** (e.g., daily or weekly) for critical production workloads. (See below for a reference link.)
+Check whether any test databases or tables you created earlier are present in this new cluster, confirming that your backup and restore processes worked successfully.
 
 ---
 
-## 5. Understanding the Backup & Restore Lifecycle
+## 5. Conclusion & Next Steps
 
-### 5.1 Data Consistency & Snapshot Mechanisms
-
-KubeBlocks ensures **transaction-consistent** backups by:
-- Integrating with MySQL’s **xtrabackup** tool, which performs online hot backups.
-- Or using **volume snapshots** if your underlying storage supports it (logical or physical snapshots).
-
-Both approaches aim to capture a consistent data state without significant downtime.
-
-### 5.2 Operator’s Role
-
-- The **KubeBlocks Operator** orchestrates container states during backup and restore.
-- It manages underlying **volume snapshots** (if using the volume-snapshot method).
-- It updates the cluster’s status resources, letting you monitor progress in real time.
-- **Minimal manual intervention** is required once your backup policies and repos are set.
-
----
-
-## 6. Conclusion & Next Steps
-
-### 6.1 Summary
+### 5.1 Summary
 
 We have demonstrated how KubeBlocks supports **backup & restore** — a key feature at **Operator Capability Level 3**. These capabilities ensure **data integrity**, **disaster recovery**, and **production-grade** operations for your MySQL workloads on Kubernetes.
 
-### 6.2 Try More Advanced Features
+### 5.2 Try More Advanced Features
 
-- **Scheduled Backups**: Automate recurring backups for peace of mind.  
-  [Scheduled Backup Documentation](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/backup/scheduled-backup)
-- **Point-in-time Recovery (PITR)**: If supported by your storage and backup method.
-- **Customizing Backup Repos**: Store data in different object storage providers or across multiple regions.  
-  [BackupRepo Documentation](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/backup/backup-repo)
+- **[Scheduled Backups](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/backup/scheduled-backup)**: Automate recurring backups for peace of mind.  
+- **[Point-in-time Recovery (PITR)](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/restore/pitr)**: If supported by your storage and backup method.
+- **[Customizing Backup Repos](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/backup/backup-repo#manual-backuprepo-configuration)**: Store data in different object storage providers or across multiple regions.  
+- Try the **same backup/restore workflow** for other databases (PostgreSQL, Redis, MongoDB, etc.) to see how KubeBlocks provides consistent management across multiple engines.
 
-### 6.3 Key Takeaways
+### 5.3 Key Takeaways
 
 - **KubeBlocks** offers a **production-grade, application-aware** approach to backing up and restoring databases on Kubernetes.
 - With **operator-driven automation**, you can maintain data consistency, minimize downtime, and rapidly spin up new environments from backups.
 - These features scale seamlessly across dev clusters, enterprise deployments, and multi-cloud environments.
-
----
-
-## Optional Appendices
-
-### Appendix A: Troubleshooting
-
-- **Backup Not Starting**: Check if the `BackupRepo` is properly configured and accessible.
-- **Restore Stuck**: Confirm the storage used by the new (or overwritten) cluster is sufficient and that the relevant Pods aren’t in a crash loop.
-
-### Appendix B: Custom Storage Backends
-
-- **S3 / GCS / OSS / COS / OBS**: Configure credentials and endpoints in the `BackupRepo` resource.
-- **MinIO** (S3-compatible): Ideal for on-prem or dev setups.
-- **PVC**: For local, on-Kubernetes storage (not recommended for cross-region DR).
-
-For more details on configuring backup policies, methods, and advanced features, see:  
-[Configure Backup Policy](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/backup/configure-backuppolicy)
-
