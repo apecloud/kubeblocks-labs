@@ -326,19 +326,22 @@ Once connected, create your own database, tables, and sample records (e.g., `CRE
 
 ---
 
+Below is a **simplified** version of the *Backup Basics* section, emphasizing the **key points** while maintaining clarity and readability:
+
+---
+
 ## 2. Backup Basics
 
-### 2.1 Supported Backup Types & Storage
-(增加一些kubeblocks的backup内容介绍，参考：https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/introduction)
+KubeBlocks provides **comprehensive backup and restore capabilities** to protect your database data. All backups require a **BackupRepo**, where backup artifacts are stored—this can be **object storage** or **PVC-based** volumes.
 
-1. **Full vs. Incremental**: Depending on your storage and database engine, you may configure different backup strategies (incremental backup is engine-dependent and might not always be supported).
-2. **Storage Configurations**:
-    - **Object storage** such as S3, GCS, OSS, COS, or MinIO (S3-compatible).
-    - **PVC-based storage** on Kubernetes.
+Under the hood, KubeBlocks supports **physical backup tools** (like XtraBackup for MySQL) and **volume snapshots**, giving you the flexibility to choose the method that best fits your workload. You can perform **on-demand** backups for immediate data protection or set up **scheduled** backups to automatically capture and manage your data over time.
 
-In **KubeBlocks**, you can create multiple **BackupRepos** to handle different backup needs (e.g., for separate business units or multi-region setups). For simplicity, **a default backup repository** has already been created for this tutorial.
+### 2.1 Supported Backup Storage
 
-To verify the existing BackupRepo:
+- **Object Storage**: S3, GCS, OSS, COS, or MinIO (S3-compatible).
+- **PVC-based Storage**: Uses Kubernetes Persistent Volume Claims.
+
+In **KubeBlocks**, you may have multiple **BackupRepos** for different environments or regions. For this tutorial, a **default** repository has already been created. To verify it:
 
 ```bash
 kubectl get backuprepo -n demo
@@ -388,8 +391,8 @@ Namespace:          demo
 Default:            true
 
 Backup Methods:
-NAME              ACTIONSET              SNAPSHOT-VOLUMES   
-xtrabackup        mysql-xtrabackup       false              
+NAME              ACTIONSET              SNAPSHOT-VOLUMES
+xtrabackup        mysql-xtrabackup       false
 volume-snapshot   mysql-volumesnapshot   true
 ```
 ::
@@ -424,7 +427,7 @@ After applying the resource, you can:
 kubectl get backup -n demo
 ```
 
-Wait for the STATUS to become `Completed`(It may take about a minute).
+Wait for the STATUS to become `Completed` (It may take about a minute).
 
 ```bash
 NAME       POLICY                          METHOD       REPO         STATUS      TOTAL-SIZE   DURATION   CREATION-TIME          COMPLETION-TIME        EXPIRATION-TIME
@@ -515,21 +518,16 @@ Check whether any test databases or tables you created earlier are present in th
 
 ---
 
-## 5. Conclusion & Next Steps
-
-### 5.1 Summary
+## Summary
 
 We have demonstrated how KubeBlocks supports **backup & restore** — a key feature at **Operator Capability Level 3**. These capabilities ensure **data integrity**, **disaster recovery**, and **production-grade** operations for your MySQL workloads on Kubernetes.
 
-### 5.2 Try More Advanced Features
+---
 
-- **[Scheduled Backups](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/backup/scheduled-backup)**: Automate recurring backups for peace of mind.  
+## What’s Next?
+### Try More Advanced Features
+
+- **[Scheduled Backups](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/backup/scheduled-backup)**: Automate recurring backups for peace of mind.
 - **[Point-in-time Recovery (PITR)](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/restore/pitr)**: If supported by your storage and backup method.
-- **[Customizing Backup Repos](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/backup/backup-repo#manual-backuprepo-configuration)**: Store data in different object storage providers or across multiple regions.  
+- **[Customizing Backup Repos](https://kubeblocks.io/docs/release-0.9/user_docs/maintenance/backup-and-restore/backup/backup-repo#manual-backuprepo-configuration)**: Store data in different object storage providers or across multiple regions.
 - Try the **same backup/restore workflow** for other databases (PostgreSQL, Redis, MongoDB, etc.) to see how KubeBlocks provides consistent management across multiple engines.
-
-### 5.3 Key Takeaways
-
-- **KubeBlocks** offers a **production-grade, application-aware** approach to backing up and restoring databases on Kubernetes.
-- With **operator-driven automation**, you can maintain data consistency, minimize downtime, and rapidly spin up new environments from backups.
-- These features scale seamlessly across dev clusters, enterprise deployments, and multi-cloud environments.
