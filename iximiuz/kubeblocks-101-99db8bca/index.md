@@ -142,6 +142,8 @@ Welcome to this **KubeBlocks** tutorial!
 
 [KubeBlocks](https://kubeblocks.io/) is a Kubernetes Operator that allows you to deploy and manage databases and stateful applications seamlessly. With a strong emphasis on **“Run Any Database on KubeBlocks,”** you can effortlessly spin up popular databases such as MySQL, PostgreSQL, Redis, and more on your Kubernetes cluster.
 
+👋 If you find KubeBlocks helpful, please consider giving us a star ⭐️ on our [GitHub repository](https://github.com/apecloud/kubeblocks). Every star motivates us to make KubeBlocks even better!
+
 In this guide, you will:
 1. Install KubeBlocks and its command-line interface (CLI).
 2. Create and connect to a MySQL cluster.

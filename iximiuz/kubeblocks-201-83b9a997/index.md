@@ -217,6 +217,8 @@ Welcome to the **second chapter** of our **KubeBlocks** tutorial series!
 
 In this guide, we focus on **seamless upgrades**—a key feature that aligns with **Operator Capability Level 2**. You’ll see how KubeBlocks keeps your databases updated **with minimal downtime**, even in a production-grade environment. Whether you’re managing a small dev cluster or a large-scale enterprise deployment, KubeBlocks streamlines the entire **database lifecycle** on Kubernetes, and can scale up to even more advanced capabilities.
 
+👋 If you find KubeBlocks helpful, please consider giving us a star ⭐️ on our [GitHub repository](https://github.com/apecloud/kubeblocks). Every star motivates us to make KubeBlocks even better!
+
 ::image-box
 ---
 src: __static__/operator-capability-level.png

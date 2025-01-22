@@ -103,11 +103,25 @@ tasks:
       sudo rm -rf /usr/local/bin/kbcli
       export KB_CLI_VERSION=v0.9.2
       curl -fsSL https://kubeblocks.io/installer/install_cli.sh | bash -s $KB_CLI_VERSION
+
+  init_task_2:
+    init: true
+    user: laborant
+    needs:
+      - init_task_1
+    run: |
       export KB_VERSION=v0.9.2
       kubectl create -f https://github.com/apecloud/kubeblocks/releases/download/$KB_VERSION/kubeblocks_crds.yaml
       helm repo add kubeblocks https://apecloud.github.io/helm-charts
       helm repo update
       helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 0.9.2 --set dataProtection.encryptionKey='S!B\*d$zDsb=' --create-namespace
+
+  init_task_3:
+    init: true
+    user: laborant
+    needs:
+      - init_task_2
+    run: |
       kbcli addon enable mysql --set image.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com --set images.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
       kubectl create namespace demo
       cat <<EOF | kubectl apply -f -
@@ -269,7 +283,13 @@ tasks:
         exit 1
       fi
     hintcheck: |
-      kubectl get backup -n demo | grep mybackup
+      if kubectl get backup -n demo >/dev/null 2>&1; then
+        echo "💡 Backup task is in progress..."
+        echo "⏳ Please wait a few minutes for the backup to complete."
+      else
+        echo "❌ No backup found in namespace 'demo'"
+        echo "💡 You need to create a backup first"
+      fi
 
   verify_restore_trigger:
     needs:
@@ -286,8 +306,6 @@ tasks:
         echo "restore cluster not found"
         exit 1
       fi
-    hintcheck: |
-      kubectl get cluster -n demo
 ---
 
 Welcome to the **third chapter** of our **KubeBlocks** tutorial series!
