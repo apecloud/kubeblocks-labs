@@ -187,9 +187,6 @@ tasks:
         volumeCapacity: 20Gi
       EOF
 
-
-      
-
   # 2) Task to verify kbcli is installed
   verify_kbcli_installation:
     run: |
@@ -228,25 +225,6 @@ tasks:
         echo "not ready yet"
         exit 1
       fi
-
-  verify_cluster_upgrade:
-    needs:
-      - verify_mysql_pod_ready
-    run: |
-      output="$(kubectl get opsrequest mysql-upgrade -n demo | grep Succeed)"
-      echo "controlplane $ kubectl get opsrequest mysql-upgrade -n demo | grep Succeed"
-      echo "$output"
-
-      if [ -n "$output" ]; then
-        echo "done - cluster upgrade operation completed successfully" 
-        exit 0
-      else
-        status=$(kubectl get opsrequest mysql-upgrade -n demo)
-        echo "upgrade not complete - current status: $status"
-        exit 1
-      fi
-    hintcheck: |
-      kubectl get opsrequest -n demo | grep mysql-upgrade
 
   verify_trigger_backup:
     needs:
@@ -311,6 +289,8 @@ tasks:
 Welcome to the **third chapter** of our **KubeBlocks** tutorial series!
 
 In this tutorial, we’ll focus on **backup & restore** — a crucial component of **Operator Capability Level 3**, which emphasizes **full lifecycle management** of databases on Kubernetes. We’ll now address why backups and restores are **vital for production environments**, how to create them with **minimal downtime**, and how to safely and quickly recover data when needed.
+
+👋 If you find KubeBlocks helpful, please consider giving us a star ⭐️ on our [GitHub repository](https://github.com/apecloud/kubeblocks). Every star motivates us to make KubeBlocks even better!
 
 ::image-box
 ---
