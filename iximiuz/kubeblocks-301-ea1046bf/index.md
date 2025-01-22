@@ -381,11 +381,11 @@ Once connected, create your own database, tables, and sample records (e.g., `CRE
 
 ---
 
-Below is a **simplified** version of the *Backup Basics* section, emphasizing the **key points** while maintaining clarity and readability:
-
----
-
 ## 2. Backup Basics
+
+KubeBlocks provides **comprehensive backup and restore capabilities** to protect your database data. All backups require a **BackupRepo**, where backup artifacts are stored—this can be **object storage** or **PVC-based** volumes.
+
+Under the hood, KubeBlocks supports **physical backup tools** (like XtraBackup for MySQL) and **volume snapshots**, giving you the flexibility to choose the method that best fits your workload. You can perform **on-demand** backups for immediate data protection or set up **scheduled** backups to automatically capture and manage your data over time.
 
 ::image-box
 ---
@@ -393,10 +393,6 @@ src: __static__/backup-restore.png
 alt: 'Backup & Restore'
 ---
 ::
-
-KubeBlocks provides **comprehensive backup and restore capabilities** to protect your database data. All backups require a **BackupRepo**, where backup artifacts are stored—this can be **object storage** or **PVC-based** volumes.
-
-Under the hood, KubeBlocks supports **physical backup tools** (like XtraBackup for MySQL) and **volume snapshots**, giving you the flexibility to choose the method that best fits your workload. You can perform **on-demand** backups for immediate data protection or set up **scheduled** backups to automatically capture and manage your data over time.
 
 ### 2.1 Supported Backup Storage
 
@@ -530,7 +526,6 @@ kubectl describe backup mybackup -n demo
 
 The backup artifact now resides in the configured **BackupRepo** (e.g., S3, MinIO, or a PVC).
 
----
 
 ## 4. Restoring from a Backup
 
