@@ -80,7 +80,7 @@ playground:
         cpuCount: 2
         ramSize: "4G"
 
-cover: __static__/backup-restore.png
+cover: __static__/backup-restore2.png
 
 createdAt: 2025-01-16
 updatedAt: 2025-01-16
@@ -389,7 +389,7 @@ Under the hood, KubeBlocks supports **physical backup tools** (like XtraBackup f
 
 ::image-box
 ---
-src: __static__/backup-restore.png
+src: __static__/backup-restore2.png
 alt: 'Backup & Restore'
 ---
 ::
