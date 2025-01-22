@@ -377,7 +377,35 @@ Before proceeding, you may want to **connect to your MySQL cluster** and create 
 kbcli cluster connect mycluster -n demo
 ```
 
-Once connected, create your own database, tables, and sample records (e.g., `CREATE DATABASE test;`, `CREATE TABLE test.mytable ...;`, `INSERT INTO test.mytable ...;`) so that you can confirm the backup and restore processes successfully carry over any data you create.
+Once connected, create your own database, tables, and sample records so that you can confirm the backup and restore processes successfully carry over any data you create.
+
+::details-box
+---
+:summary: Sample Records
+---
+```sql
+-- Create database
+CREATE DATABASE test;
+
+-- Use the database
+USE test;
+
+-- Create a simple employees table
+CREATE TABLE employees (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL,
+    salary DECIMAL(10,2),
+    hire_date DATE
+);
+
+-- Insert sample records
+INSERT INTO employees (name, salary, hire_date) VALUES
+('John Smith', 50000.00, '2023-01-15'),
+('Mary Johnson', 60000.00, '2023-02-20'),
+('Bob Wilson', 55000.00, '2023-03-10');
+```
+::
+
 
 ---
 
