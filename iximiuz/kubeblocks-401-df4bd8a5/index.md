@@ -27,21 +27,6 @@ playground:
       kind: terminal
       name: dev-machine
       machine: dev-machine
-
-    - id: terminal-cplane-01
-      kind: terminal
-      name: cplane-01
-      machine: cplane-01
-
-    - id: terminal-node-01
-      kind: terminal
-      name: node-01
-      machine: node-01
-
-    - id: terminal-node-02
-      kind: terminal
-      name: node-02
-      machine: node-02
       
     - id: Grafana
       kind: http-port
@@ -54,6 +39,12 @@ playground:
       name: Prometheus
       machine: node-01
       number: 32001
+      
+    - id: AlertManager
+      kind: http-port
+      name: AlertManager
+      machine: node-01
+      number: 32002
 
   machines:
     - name: dev-machine
@@ -237,64 +228,6 @@ tasks:
         exit 1
       fi
 
-  verify_trigger_backup:
-    needs:
-      - verify_mysql_pod_ready
-    run: |
-      output="$(kubectl get backup -n demo)"
-      echo "controlplane $ kubectl get backup -n demo"
-      echo "$output"
-
-      if [ -n "$output" ]; then
-        echo "done - backup was triggered successfully"
-        exit 0
-      else
-        echo "backup not found"
-        exit 1
-      fi
-    hintcheck: |
-      kubectl get backup -n demo
-
-  verify_backup_progress:
-    needs:
-      - verify_trigger_backup
-    run: |
-      output="$(kubectl get backup mybackup -n demo | grep Completed)"
-      echo "controlplane $ kubectl get backup mybackup -n demo | grep Completed"
-      echo "$output"
-
-      if [ -n "$output" ]; then
-        echo "done - backup operation completed successfully"
-        exit 0
-      else
-        status=$(kubectl get backup mybackup -n demo)
-        echo "backup not complete - current status: $status"
-        exit 1
-      fi
-    hintcheck: |
-      if kubectl get backup -n demo >/dev/null 2>&1; then
-        echo "💡 Backup task is in progress..."
-        echo "⏳ Please wait a few minutes for the backup to complete."
-      else
-        echo "❌ No backup found in namespace 'demo'"
-        echo "💡 You need to create a backup first"
-      fi
-
-  verify_restore_trigger:
-    needs:
-      - verify_backup_progress
-    run: |
-      output="$(kubectl get cluster myrestore -n demo)"
-      echo "controlplane $ kubectl get cluster myrestore -n demo"
-      echo "$output"
-
-      if [ -n "$output" ]; then
-        echo "done - restore cluster was created successfully"
-        exit 0
-      else
-        echo "restore cluster not found"
-        exit 1
-      fi
 ---
 
 Welcome to the **fourth chapter** of our **KubeBlocks** tutorial series! 
@@ -361,41 +294,68 @@ Yay! Your MySQL cluster is ready. 🎉
 
 ## 1. Introduction
 
-- **What is Observability?**
-    - Define observability in the context of Kubernetes: monitoring metrics, logs, and events to gain insights into the system’s behavior.
-- **Operator Capability Level 4:**
-    - Explain how KubeBlocks leverages observability to provide deep insights into database health, performance, and operational anomalies.
-- **Components:**
-    - **Metrics:** Integration with Prometheus for scraping cluster metrics.
-    - **Logging:** Aggregated logs via native Kubernetes logging or integrated logging solutions.
-    - **Alerting:** Configuring alerts for critical events and performance thresholds.
+**What is Observability?**
+
+Observability in Kubernetes is the practice of monitoring metrics, logs, and events to gain insights into the system’s behavior. By collecting and analyzing this data, you can quickly diagnose issues, understand performance bottlenecks, and ensure that your clusters run smoothly.
+
+**Operator Capability Level 4:**
+
+At Operator Capability Level 4, KubeBlocks leverages advanced observability features to provide deep insights into database health, performance, and operational anomalies. This level of observability is crucial for maintaining high availability and ensuring proactive troubleshooting in production environments.
+
+**Components:**
+
+- **Metrics:**  
+KubeBlocks integrates with Prometheus to scrape cluster metrics, allowing you to monitor resource usage and performance in real time.
+
+- **Alerting:**  
+You can configure alerts to notify you when critical events or performance thresholds are exceeded, ensuring that issues are addressed before they escalate.
 
 ---
 
 ## 2. Enabling Observability for a KubeBlocks Cluster
 
+To fully leverage observability in KubeBlocks, you need to set up monitoring tools such as Prometheus and Grafana. Follow the steps below to install and configure these tools in your Kubernetes cluster.
+
 ### 2.1 Install Prometheus Operator and Grafana
 
-TODO：拆分步骤，添加必要的描述
+1. **Create a Monitoring Namespace**  
+It is a best practice to isolate monitoring components in their own namespace. Create a new namespace called `monitoring`:
+
 ```bash
 kubectl create namespace monitoring
 ```
 
+2. **Add the Prometheus Community Helm Repository**  
+This repository contains the official Helm chart for the Prometheus Operator:
+
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+```
+
+3. **Install the Prometheus Operator (kube-prometheus-stack)**  
+Use Helm to install the Prometheus Operator and Grafana. This command configures Grafana and Prometheus as NodePort services, exposing them on ports `32000` and `32001` respectively.
+
+```bash
 helm install prometheus-operator prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --set grafana.service.type=NodePort \
   --set grafana.service.nodePort=32000 \
   --set prometheus.service.type=NodePort \
-  --set prometheus.service.nodePort=32001
+  --set prometheus.service.nodePort=32001 \
+  --set alertmanager.service.type=NodePort \
+  --set alertmanager.service.nodePort=32002
 ```
+
+4. **Verify the Installation**  
+Check that all the monitoring components are running in the `monitoring` namespace:
 
 ```bash
 kubectl get pods -n monitoring
 ```
-Example Output:
-```bash
+
+**Example Output:**
+
+```plaintext
 NAME                                                     READY   STATUS    RESTARTS   AGE
 alertmanager-prometheus-operator-kube-p-alertmanager-0   2/2     Running   0          4m24s
 prometheus-operator-grafana-5f5b9584b8-qmzqm             3/3     Running   0          4m30s
@@ -407,23 +367,25 @@ prometheus-operator-prometheus-node-exporter-rpngp       1/1     Running   0    
 prometheus-prometheus-operator-kube-p-prometheus-0       2/2     Running   0          4m23s
 ```
 
-### 2.2 Monitor a database cluster
+### 2.2 Monitor a Database Cluster
 
-TODO：添加必要的描述
+After setting up Prometheus and Grafana, configure them to monitor your KubeBlocks database cluster.
+
+1. **Create a PodMonitor Resource**  
+A `PodMonitor` resource instructs Prometheus on which pods to scrape for metrics. In this example, the `PodMonitor` is configured to monitor the MySQL component of your `mycluster` database (running in the `demo` namespace). The labels specified help Prometheus to correctly associate the metrics with your database cluster.
+
 ```bash
 kubectl apply -f - <<EOF
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: mycluster-pod-monitor
-  namespace: monitoring # Note: this is namespace for prometheus operator
-  labels:               # This is labels set in `prometheus.spec.podMonitorSelector`
+  namespace: monitoring # Namespace where the Prometheus operator is installed
+  labels:               # Labels to match the Prometheus operator’s podMonitorSelector
     release: prometheus-operator
 spec:
   jobLabel: kubeblocks-service
-  # Define the labels which are transferred from the
-  # associated Kubernetes `Pod` object onto the ingested metrics
-  # set the labels w.r.t your own needs
+  # Transfer selected labels from the associated pod onto the ingested metrics
   podTargetLabels:
   - app.kubernetes.io/instance
   - app.kubernetes.io/managed-by
@@ -443,19 +405,36 @@ spec:
 EOF
 ```
 
-TODO：添加必要的描述
+2. **Enable Metrics Exporter for the Database Cluster**  
+Ensure that your database cluster is exporting metrics by enabling the exporter. Patch the cluster configuration to set `disableExporter` to `false` for the relevant component (in this case, the MySQL component):
+
 ```bash
 kubectl patch cluster mycluster -n demo --type "json" -p '[{"op":"add","path":"/spec/componentSpecs/0/disableExporter","value":false}]'
 ```
+
+This configuration enables Prometheus to scrape metrics from your MySQL pods, allowing you to monitor the performance and health of your database cluster.
 
 ---
 
 ## 3. Accessing and Visualizing Metrics
 
-TODO：在之前的步骤中，我们已经启动了prometheus和grafana，并且通过node port将服务暴露了出来。你可以通过`Grafana`和`Prometheus` Tab查看他们。
+With Prometheus and Grafana deployed and properly configured, you can now access and visualize your cluster’s metrics.
 
-Grafana的用户名密码是：`admin`和`prom-operator`
+- **Accessing Grafana and Prometheus:**  
+Since both services are exposed via NodePort, you can access them using your browser:
+- **Grafana:** `http://<node-ip>:32000`
+- **Prometheus:** `http://<node-ip>:32001`
 
+- **Grafana Login Credentials:**
+- **Username:** `admin`
+- **Password:** `prom-operator`
+
+- **Viewing the MySQL Dashboard in Grafana:**  
+After logging into Grafana, navigate to:
+
+**Home > Dashboards > APPS / MySQL**
+
+Here, you will see the MySQL dashboard displaying key metrics such as query performance, resource usage, and overall operational status. These visualizations provide you with real-time insights into your database cluster's health and performance.
 
 ::image-box
 ---
@@ -464,58 +443,92 @@ alt: 'Grafana'
 ---
 ::
 
+By regularly monitoring these dashboards, you can quickly identify and troubleshoot issues, ensuring that your KubeBlocks-managed database clusters run efficiently.
+
 ---
 
 ## 4. Alerts and Anomaly Detection
 
-- **Alerting Overview:**
-    - Explain how alerts can be configured based on metrics thresholds or error logs.
-- **Example Alert Configuration:**
-    - Show an example of a Prometheus alert rule that notifies you when query latency exceeds a defined threshold.
+TODO：添加说明，我们创建1个MySQL服务在线检测。
 
-  ```yaml
+```bash
+kubectl apply -f - <<EOF
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mysql-restart-alert
+  namespace: monitoring
+  labels:
+    release: prometheus-operator
+spec:
   groups:
-  - name: mysql-alerts
+  - name: mysql.rules
     rules:
-    - alert: HighQueryLatency
-      expr: mysql_query_latency_seconds_mean > 0.5
-      for: 2m
+    - alert: MySQLInstanceDown
+      expr: |
+        mysql_up{namespace="demo"} == 0
+      for: 1m
       labels:
         severity: warning
       annotations:
-        summary: "High query latency detected in MySQL cluster"
-        description: "Query latency has exceeded 0.5 seconds for more than 2 minutes."
-  ```
-- **Simulate and Verify Alerts:**
-    - Describe how to simulate an alert (e.g., by generating load or using a test metric).
-    - Provide steps to verify that the alert is triggered and visible in your alerting dashboard.
+        summary: "MySQL instance is down"
+        description: "MySQL instance {{ $labels.pod }} in namespace demo is down"
+EOF
+```
 
-- **Task:**
-    - Configure and test an alert to ensure notifications are working as expected.
+```bash
+kubectl apply -f - <<EOF
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: mysql-null-config
+  namespace: monitoring
+spec:
+  route:
+    receiver: 'null'
+    groupBy: ['alertname']
+    groupWait: 10s
+    groupInterval: 1m
+  receivers:
+  - name: 'null'
+EOF
+```
 
-  ::simple-task
-  ---
-  :tasks: tasks
-  :name: verify_alerts
-  ---
-  #active
-  Configuring and testing alert rules...
+TODO:刷新Prometheus页面，应该能
 
-  #completed
-  Alert triggered and verified successfully!
-  ::
+::image-box
+---
+src: __static__/alert.png
+alt: 'alert'
+---
+::
+
+
+TODO:尝试删除pods，触发服务down，查看alert是否触发
+
+```bash
+kubectl delete pods mycluster-mysql-0 mycluster-mysql-1 mycluster-mysql-2 -n demo
+```
+::image-box
+---
+src: __static__/alert-triggerred.png
+alt: 'alert-triggerred'
+---
+::
 
 ---
 
 ## Summary
 
+TODO:强调kubeblocks采用的是开源方案，跟开源社区紧紧耦合。
+
 - **Recap:**
-    - We demonstrated how to enable and leverage observability features in KubeBlocks.
-    - Covered accessing metrics, logs, and setting up alerting mechanisms.
+  - We demonstrated how to enable and leverage observability features in KubeBlocks.
+  - Covered accessing metrics, and setting up alerting mechanisms.
 - **Benefits:**
-    - Emphasized how observability helps maintain high availability, performance, and facilitates proactive troubleshooting for your database clusters.
+  - Emphasized how observability helps maintain high availability, performance, and facilitates proactive troubleshooting for your database clusters.
 - **Next Steps:**
-    - Encourage exploring additional observability integrations and advanced monitoring configurations.
+  - Encourage exploring additional observability integrations and advanced monitoring configurations.
 
 ---
 
