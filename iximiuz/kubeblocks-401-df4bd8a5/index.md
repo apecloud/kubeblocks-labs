@@ -47,13 +47,13 @@ playground:
       kind: http-port
       name: Grafana
       machine: node-01
-      number: 33000
+      number: 32000
       
     - id: Prometheus
       kind: http-port
       name: Prometheus
       machine: node-01
-      number: 33001
+      number: 32001
 
   machines:
     - name: dev-machine
@@ -386,9 +386,9 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm install prometheus-operator prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --set grafana.service.type=NodePort \
-  --set grafana.service.nodePort=33000 \
+  --set grafana.service.nodePort=32000 \
   --set prometheus.service.type=NodePort \
-  --set prometheus.service.nodePort=33001
+  --set prometheus.service.nodePort=32001
 ```
 
 ```bash
@@ -416,11 +416,14 @@ apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: mycluster-pod-monitor
-  namespace: monitoring
-  labels:
+  namespace: monitoring # Note: this is namespace for prometheus operator
+  labels:               # This is labels set in `prometheus.spec.podMonitorSelector`
     release: prometheus-operator
 spec:
   jobLabel: kubeblocks-service
+  # Define the labels which are transferred from the
+  # associated Kubernetes `Pod` object onto the ingested metrics
+  # set the labels w.r.t your own needs
   podTargetLabels:
   - app.kubernetes.io/instance
   - app.kubernetes.io/managed-by
@@ -432,7 +435,7 @@ spec:
       scheme: http
   namespaceSelector:
     matchNames:
-      - default
+      - demo
   selector:
     matchLabels:
       app.kubernetes.io/instance: mycluster
@@ -440,68 +443,30 @@ spec:
 EOF
 ```
 
----
-
-## 5. Accessing and Visualizing Metrics
-
-- **Accessing Metrics:**
-    - Explain how Prometheus scrapes metrics from your KubeBlocks cluster.
-    - Demonstrate how to query metrics directly via Prometheus or through Grafana dashboards.
-- **Steps to Visualize:**
-    - Use port-forwarding to access the Prometheus and/or Grafana UI.
-    - Provide sample queries that reveal key database performance indicators (e.g., connection counts, query latency, resource usage).
-
-  ```bash
-  # Example: Port-forward to access Grafana
-  kubectl port-forward svc/grafana -n observability 3000:80
-  ```
-- **Task:**
-    - Verify that you can see the cluster metrics and dashboards are updating.
-
-  ::simple-task
-  ---
-  :tasks: tasks
-  :name: verify_metrics_endpoint
-  ---
-  #active
-  Accessing Prometheus/Grafana to verify metrics are visible...
-
-  #completed
-  Great! Metrics are being collected and visualized.
-  ::
+TODO：添加必要的描述
+```bash
+kubectl patch cluster mycluster -n demo --type "json" -p '[{"op":"add","path":"/spec/componentSpecs/0/disableExporter","value":false}]'
+```
 
 ---
 
-## 6. Log Aggregation and Analysis
+## 3. Accessing and Visualizing Metrics
 
-- **Log Access:**
-    - Detail how logs are collected from your database cluster pods.
-    - Explain integration with logging tools (e.g., EFK/ELK stack) if available.
-- **Troubleshooting with Logs:**
-    - Provide sample commands to view and analyze logs for troubleshooting.
+TODO：在之前的步骤中，我们已经启动了prometheus和grafana，并且通过node port将服务暴露了出来。你可以通过`Grafana`和`Prometheus` Tab查看他们。
 
-  ```bash
-  # Example: Fetch logs from a MySQL pod
-  kubectl logs mycluster-mysql-0 -n demo
-  ```
-- **Task:**
-    - Retrieve and inspect logs to ensure that any anomalies are captured.
+Grafana的用户名密码是：`admin`和`prom-operator`
 
-  ::simple-task
-  ---
-  :tasks: tasks
-  :name: inspect_cluster_logs
-  ---
-  #active
-  Retrieving logs from a database pod...
 
-  #completed
-  Logs retrieved successfully!
-  ::
+::image-box
+---
+src: __static__/grafana-1.png
+alt: 'Grafana'
+---
+::
 
 ---
 
-## 7. Alerts and Anomaly Detection
+## 4. Alerts and Anomaly Detection
 
 - **Alerting Overview:**
     - Explain how alerts can be configured based on metrics thresholds or error logs.
@@ -542,7 +507,7 @@ EOF
 
 ---
 
-## 9. Summary
+## Summary
 
 - **Recap:**
     - We demonstrated how to enable and leverage observability features in KubeBlocks.
@@ -554,7 +519,7 @@ EOF
 
 ---
 
-## 10. What’s Next?
+## What’s Next?
 
 - **Further Exploration:**
     - Experiment with integrating other monitoring tools or custom dashboards.
