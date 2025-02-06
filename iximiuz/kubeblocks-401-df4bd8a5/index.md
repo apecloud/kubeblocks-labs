@@ -47,7 +47,13 @@ playground:
       kind: http-port
       name: Grafana
       machine: node-01
-      number: 32000
+      number: 3000
+      
+    - id: Prometheus
+      kind: http-port
+      name: Prometheus
+      machine: node-01
+      number: 9090
 
   machines:
     - name: dev-machine
@@ -380,7 +386,9 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm install prometheus-operator prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --set grafana.service.type=NodePort \
-  --set grafana.service.nodePort=32000
+  --set grafana.service.nodePort=3000 \
+  --set prometheus.service.type=NodePort \
+  --set prometheus.service.nodePort=9090
 ```
 
 ```bash
