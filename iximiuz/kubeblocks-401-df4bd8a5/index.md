@@ -301,58 +301,54 @@ alt: 'Operator Capability Level'
 
 ---
 
+## Prerequisites
+
+To save you time, we’ve **automatically installed KubeBlocks** and created a **3-replica MySQL cluster** in the background. It may take a few minutes to complete the setup—feel free to proceed, but keep in mind that some commands might need to wait until the installation is fully finished.
+
+If you’re new to KubeBlocks or missed the previous tutorials, see:
+- [KubeBlocks Tutorial 101 – Getting Started](/tutorials/kubeblocks-101-99db8bca)
+- [KubeBlocks Tutorial 201 - Seamless Upgrades](/tutorials/kubeblocks-201-83b9a997)
+- [KubeBlocks Tutorial 301 - Backup & Restore](/tutorials/kubeblocks-301-ea1046bf)
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_kbcli_installation
+---
+#active
+Confirming the `kbcli` CLI tool is installed...
+
+#completed
+Great! The `kbcli` CLI is available.
+::
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_kubeblocks_installation
+---
+#active
+Waiting for the KubeBlocks operator pods to be in a ready state...
+
+#completed
+All KubeBlocks components are installed and running!
+::
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_mysql_pod_ready
+---
+#active
+Waiting for the MySQL Pods to become ready...
+
+#completed
+Yay! Your MySQL cluster is ready. 🎉
+::
+
+---
+
 ## 1. Introduction
-
-- **Overview:**
-    - Introduce observability as an essential aspect for production environments.
-    - Explain that Operator Capability Level 4 extends KubeBlocks with monitoring, logging, metrics, and alerting capabilities.
-- **Recap:**
-    - Briefly mention previous tutorials (101 – Getting Started, 201 – Seamless Upgrades, 301 – Backup & Restore) and how observability ties into full lifecycle management.
-- **Goals:**
-    - Demonstrate how to enable and leverage observability features.
-    - Show how to access metrics, logs, and alerts to ensure the health of your database clusters.
-
----
-
-## 2. Prerequisites
-
-- **Environment Setup:**
-    - KubeBlocks is already installed.
-    - A sample database cluster (for example, a 3-replica MySQL cluster in the `demo` namespace) is running.
-- **Tools:**
-    - The `kbcli` CLI tool is installed.
-    - Observability components (e.g., Prometheus and Grafana) are pre-configured or available in the lab environment.
-- **Verification Tasks:**
-    - Confirm that the KubeBlocks operator and the sample database cluster are up and running.
-    - Ensure observability endpoints (metrics, logging) are accessible.
-
-  ::simple-task
-  ---
-  :tasks: tasks
-  :name: verify_kbcli_installation
-  ---
-  #active
-  Confirming the `kbcli` CLI tool is installed...
-
-  #completed
-  Great! The `kbcli` CLI is available.
-  ::
-
-  ::simple-task
-  ---
-  :tasks: tasks
-  :name: verify_cluster_status
-  ---
-  #active
-  Confirming the sample database cluster is running in the `demo` namespace...
-
-  #completed
-  Great! The cluster is running.
-  ::
-
----
-
-## 3. Observability Fundamentals with KubeBlocks
 
 - **What is Observability?**
     - Define observability in the context of Kubernetes: monitoring metrics, logs, and events to gain insights into the system’s behavior.
@@ -363,58 +359,54 @@ alt: 'Operator Capability Level'
     - **Logging:** Aggregated logs via native Kubernetes logging or integrated logging solutions.
     - **Alerting:** Configuring alerts for critical events and performance thresholds.
 
-- **Visual Aid:**
-    - Include an image/diagram that outlines the observability stack (e.g., showing Prometheus, Grafana, and logging pipelines).
-
-  ::image-box
-  ---
-  src: __static__/observability-stack.png
-  alt: 'Observability Stack for KubeBlocks'
-  ---
-  ::
-
 ---
 
-## 4. Enabling Observability for a KubeBlocks Cluster
+## 2. Enabling Observability for a KubeBlocks Cluster
 
-- **Configuration Overview:**
-    - Discuss how to enable observability features in your cluster’s definition.
-    - Explain any annotations, labels, or configuration fields that activate observability.
-- **Example YAML Snippet:**
-    - Show how to modify a cluster resource to enable Prometheus scraping or add observability sidecars.
+### 2.1 Install Prometheus Operator and Grafana
 
-  ```yaml
-  apiVersion: apps.kubeblocks.io/v1alpha1
-  kind: Cluster
-  metadata:
-    name: mycluster
-    namespace: demo
-    annotations:
-      prometheus.io/scrape: "true"
-      prometheus.io/port: "9187"
-  spec:
-    clusterDefinitionRef: apecloud-mysql
-    clusterVersionRef: ac-mysql-8.0.30
-    terminationPolicy: WipeOut
-    componentSpecs:
-      - name: mysql
-        componentDefRef: mysql
-        replicas: 3
-  ```
-- **Task:**
-    - Apply the updated cluster configuration and verify that observability endpoints are active.
+TODO：拆分步骤，添加必要的描述
+```bash
+kubectl create namespace monitoring
 
-  ::simple-task
-  ---
-  :tasks: tasks
-  :name: apply_observability_config
-  ---
-  #active
-  Applying the observability configuration to your cluster...
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace monitoring
 
-  #completed
-  Configuration applied successfully! Observability endpoints are now active.
-  ::
+kubectl get pods -n monitoring
+```
+
+### 2.2 Monitor a database cluster
+
+TODO：添加必要的描述
+```bash
+kubectl apply -f - <<EOF
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: mycluster-pod-monitor
+  namespace: monitoring
+  labels:
+    release: prometheus-operator
+spec:
+  jobLabel: kubeblocks-service
+  podTargetLabels:
+  - app.kubernetes.io/instance
+  - app.kubernetes.io/managed-by
+  - apps.kubeblocks.io/component-name
+  - apps.kubeblocks.io/pod-name
+  podMetricsEndpoints:
+    - path: /metrics
+      port: http-metrics
+      scheme: http
+  namespaceSelector:
+    matchNames:
+      - default
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: mycluster
+      apps.kubeblocks.io/component-name: mysql
+EOF
+```
 
 ---
 
@@ -515,18 +507,6 @@ alt: 'Operator Capability Level'
   #completed
   Alert triggered and verified successfully!
   ::
-
----
-
-## 8. Observability Best Practices and Advanced Features
-
-- **Best Practices:**
-    - Recommendations on setting up dashboards, alert thresholds, and log retention policies.
-    - Tips for proactive monitoring and anomaly detection.
-- **Advanced Topics:**
-    - Integrating distributed tracing (if applicable).
-    - Customizing observability configurations for multi-region or multi-cluster environments.
-    - Combining observability data with auto-scaling policies.
 
 ---
 
