@@ -1,5 +1,5 @@
 ---
-title: KubeBlocks Tutorial 301 - Backup & Restore
+title: KubeBlocks Tutorial 401 – Observability in Action
 description: |
   Learn how to run any database on Kubernetes with KubeBlocks!
 
@@ -286,11 +286,18 @@ tasks:
       fi
 ---
 
-# KubeBlocks Tutorial 401 – Observability in Action
+Welcome to the **fourth chapter** of our **KubeBlocks** tutorial series! 
 
-Welcome to the fourth chapter of our KubeBlocks tutorial series! In this tutorial, we’ll explore **Observability**—a key feature of **Operator Capability Level 4**. You’ll learn how to monitor, analyze, and troubleshoot your database clusters on Kubernetes with built-in observability features.
+In this tutorial, we’ll explore **Observability**—a key feature of **Operator Capability Level 4**. You’ll learn how to monitor, analyze, and troubleshoot your database clusters on Kubernetes with built-in observability features.
 
-> **Tip:** If you find KubeBlocks useful, please consider starring our [GitHub repository](https://github.com/apecloud/kubeblocks). Every star helps us improve!
+👋 If you find KubeBlocks helpful, please consider giving us a star ⭐️ on our [GitHub repository](https://github.com/apecloud/kubeblocks). Every star motivates us to make KubeBlocks even better!
+
+::image-box
+---
+src: __static__/operator-capability-level.png
+alt: 'Operator Capability Level'
+---
+::
 
 ---
 
