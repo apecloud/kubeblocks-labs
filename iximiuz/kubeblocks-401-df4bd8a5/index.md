@@ -520,6 +520,8 @@ After logging in, click on the **Home** tab in the left-hand menu, then navigate
 
 These visualizations provide you with real-time insights into your database cluster's health and performance, enabling you to quickly identify and troubleshoot issues, and ensuring that your KubeBlocks-managed database clusters run efficiently.
 
+⏳This may take a minute. If you don't see it, please wait a moment and refresh the tab.
+
 ::image-box
 ---
 src: __static__/grafana-1.png
@@ -609,6 +611,8 @@ Awesome! The AlertmanagerConfig CR has been created successfully. 🎉
 
 In the Iximiuz Lab interface, switch to the **Prometheus** tab. After applying the alert configuration, refresh your Prometheus UI. You should see the new MySQL downtime alert listed in the alert panel.
 
+⏳This may take a minute. If you don't see it, please wait a moment and refresh the tab.
+
 ::image-box
 ---
 src: __static__/alert.png
@@ -622,12 +626,12 @@ To simulate a failure and verify that the alert is correctly triggered, delete t
 kubectl delete pods mycluster-mysql-0 mycluster-mysql-1 mycluster-mysql-2 -n demo
 ```
 
-After the pods are deleted, return to the Prometheus alert panel to see the triggered alert.
+After the pods are deleted, return to the Prometheus alert panel, refresh the tab to see the triggered alert.
 
 ::image-box
 ---
-src: __static__/alert-triggerred.png
-alt: 'Triggered Alert'
+src: __static__/alert-firing.png
+alt: 'Firing Alert'
 ---
 ::
 
