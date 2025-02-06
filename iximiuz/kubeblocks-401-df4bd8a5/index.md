@@ -401,6 +401,7 @@ Use Helm to install the Prometheus Operator and Grafana. This command configures
 ```bash
 helm install prometheus-operator prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
+  --timeout 10m \
   --set grafana.service.type=NodePort \
   --set grafana.service.nodePort=32000 \
   --set prometheus.service.type=NodePort \
