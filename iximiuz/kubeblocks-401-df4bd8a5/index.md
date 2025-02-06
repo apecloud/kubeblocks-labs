@@ -152,7 +152,7 @@ tasks:
           - error
           - slow
           disableExporter: true
-          replicas: 3
+          replicas: 1
           serviceAccountName: kb-mycluster
           resources:
             limits:
@@ -309,7 +309,7 @@ alt: 'Operator Capability Level'
 
 ## Prerequisites
 
-To save you time, we’ve **automatically installed KubeBlocks** and created a **3-replica MySQL cluster** in the background. It may take a few minutes to complete the setup—feel free to proceed, but keep in mind that some commands might need to wait until the installation is fully finished.
+To save you time, we’ve **automatically installed KubeBlocks** and created a **MySQL cluster** in the background. It may take a few minutes to complete the setup—feel free to proceed, but keep in mind that some commands might need to wait until the installation is fully finished.
 
 If you’re new to KubeBlocks or missed the previous tutorials, see:
 - [KubeBlocks Tutorial 101 – Getting Started](/tutorials/kubeblocks-101-99db8bca)
@@ -623,7 +623,7 @@ alt: 'Alert Panel'
 To simulate a failure and verify that the alert is correctly triggered, delete the MySQL pods:
 
 ```bash
-kubectl delete pods mycluster-mysql-0 mycluster-mysql-1 mycluster-mysql-2 -n demo
+kubectl delete pods mycluster-mysql-0 -n demo
 ```
 
 After the pods are deleted, return to the Prometheus alert panel, refresh the tab to see the triggered alert.
