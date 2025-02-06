@@ -243,6 +243,21 @@ tasks:
         exit 1
       fi
 
+  verify_disable_exporter_is_false:
+    needs:
+      - verify_kubeblocks_installation
+    run: |
+      output="$(kubectl get cluster -n demo mycluster -o yaml 2>&1 || true)"
+      echo "controlplane \$ kubectl get cluster -n demo mycluster -o yaml"
+      echo "$output"
+      if echo "$output" | grep -q "disableExporter:.*false"; then
+        echo "done"
+        exit 0
+      else
+        echo "disableExporter is not false yet"
+        exit 1
+      fi
+
 
 ---
 
@@ -310,23 +325,22 @@ Yay! Your MySQL cluster is ready. 🎉
 
 ## 1. Introduction
 
-TODO：Introduction总体感觉还可以，但是我觉得可以写更好一些。加上：KubeBlocks 默认还会为每个数据库实例(Pod)添加 metrics exporter。
-
 **What is Observability?**
 
-Observability in Kubernetes is the practice of monitoring metrics, logs, and events to gain insights into the system’s behavior. By collecting and analyzing this data, you can quickly diagnose issues, understand performance bottlenecks, and ensure that your clusters run smoothly.
+Observability in Kubernetes involves monitoring metrics, logs, and events to gain actionable insights into your system’s behavior. By analyzing this data, you can diagnose issues, pinpoint performance bottlenecks, and ensure that your clusters run smoothly.
 
-**Operator Capability Level 4:**
+**Enhanced Metrics Exporting:**
 
-At Operator Capability Level 4, KubeBlocks leverages advanced observability features to provide deep insights into database health, performance, and operational anomalies. This level of observability is crucial for maintaining high availability and ensuring proactive troubleshooting in production environments.
+KubeBlocks automatically deploys a metrics exporter for each database instance (Pod). This built-in exporter collects detailed performance data in real time, seamlessly integrating with Prometheus to help you monitor resource usage and overall system health.
 
-**Components:**
+**Key Features:**
 
-- **Metrics:**  
-KubeBlocks integrates with Prometheus to scrape cluster metrics, allowing you to monitor resource usage and performance in real time.
+* **Metrics:**  
+KubeBlocks scrapes a wide range of cluster metrics via Prometheus, enabling continuous monitoring of resource usage and performance.
 
-- **Alerting:**  
-You can configure alerts to notify you when critical events or performance thresholds are exceeded, ensuring that issues are addressed before they escalate.
+* **Alerting:**  
+Set up alerts to notify you when critical events or performance thresholds are exceeded, ensuring issues are addressed promptly.
+
 
 ---
 
@@ -448,6 +462,18 @@ kubectl patch cluster mycluster -n demo --type "json" -p '[{"op":"add","path":"/
 
 This configuration enables Prometheus to scrape metrics from your MySQL pods, allowing you to monitor the performance and health of your database cluster.
 
+::simple-task
+---
+:tasks: tasks
+:name: verify_disable_exporter_is_false
+---
+#active
+Waiting for the MySQL Cluster to export metrics by enabling the exporter...
+
+#completed
+Yay! Your MySQL Cluster is exporting metrics. 🎉
+::
+
 ---
 
 ## 3. Accessing and Visualizing Metrics
@@ -475,7 +501,9 @@ alt: 'Grafana'
 
 ## 4. Alerts and Anomaly Detection
 
-In this section, we create a service-level alert for MySQL to detect when an instance goes offline. This alert monitors the MySQL service in the `demo` namespace and will notify you if any instance remains down for more than 1 minute.
+In this section, we create a service-level alert for MySQL to detect when an instance goes offline. This alert monitors the MySQL service in the `demo` namespace and will trigger immediately when an instance goes down.
+
+We create a `PrometheusRule` custom resource (CR) that instructs Prometheus to evaluate the condition for the MySQL service. In this case, if `mysql_up{namespace="demo"}` equals 0, it indicates that the MySQL instance is not running, and an alert will be triggered immediately.
 
 ```bash
 kubectl apply -f - <<EOF
@@ -491,9 +519,7 @@ spec:
   - name: mysql.rules
     rules:
     - alert: MySQLInstanceDown
-      expr: |
-        mysql_up{namespace="demo"} == 0
-      for: 1m
+      expr: mysql_up{namespace="demo"} == 0
       labels:
         severity: warning
       annotations:
@@ -502,7 +528,9 @@ spec:
 EOF
 ```
 
-Next, we apply a minimal Alertmanager configuration to handle alerts. In this example, alerts are routed to a "null" receiver for demonstration purposes.
+Next, we apply an AlertmanagerConfig custom resource to customize how alerts are routed and handled. While Prometheus generates alerts based on your rules, Alertmanager is responsible for grouping, silencing, and routing those alerts. 
+
+In our example, we configure Alertmanager to route alerts to a "null" receiver, which effectively discards the alerts for demonstration purposes.
 
 ```bash
 kubectl apply -f - <<EOF
@@ -522,27 +550,30 @@ spec:
 EOF
 ```
 
-After applying the alert configuration, refresh your Prometheus UI. You should see the new MySQL downtime alert listed in the alert panel.
+In the Iximiuz Lab interface, switch to the **Prometheus** tab. After applying the alert configuration, refresh your Prometheus UI. You should see the new MySQL downtime alert listed in the alert panel.
 
 ::image-box
 ---
 src: __static__/alert.png
-alt: 'alert'
+alt: 'Alert Panel'
 ---
 ::
 
-To simulate a failure, delete the MySQL pods to trigger the downtime alert. This will allow you to verify that the alert is correctly triggered in Prometheus.
+To simulate a failure and verify that the alert is correctly triggered, delete the MySQL pods:
 
 ```bash
 kubectl delete pods mycluster-mysql-0 mycluster-mysql-1 mycluster-mysql-2 -n demo
 ```
 
+After the pods are deleted, return to the Prometheus alert panel to see the triggered alert.
+
 ::image-box
 ---
 src: __static__/alert-triggerred.png
-alt: 'alert-triggerred'
+alt: 'Triggered Alert'
 ---
 ::
+
 
 ---
 
