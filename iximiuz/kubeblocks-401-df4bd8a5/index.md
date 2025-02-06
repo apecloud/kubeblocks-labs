@@ -258,6 +258,37 @@ tasks:
         exit 1
       fi
 
+  verify_prometheus_rule_created:
+    needs:
+      - verify_kubeblocks_installation
+    run: |
+      output="$(kubectl get prometheusrule mysql-restart-alert -n monitoring --ignore-not-found 2>&1)"
+      echo "controlplane \$ kubectl get prometheusrule mysql-restart-alert -n monitoring --ignore-not-found"
+      echo "$output"
+      if [ -z "$output" ]; then
+        echo "PrometheusRule CR not created yet"
+        exit 1
+      else
+        echo "done"
+        exit 0
+      fi
+      
+  verify_alertmanager_config_created:
+    needs:
+      - verify_kubeblocks_installation
+    run: |
+      output="$(kubectl get alertmanagerconfig mysql-null-config -n monitoring --ignore-not-found 2>&1)"
+      echo "controlplane \$ kubectl get alertmanagerconfig mysql-null-config -n monitoring --ignore-not-found"
+      echo "$output"
+      if [ -z "$output" ]; then
+        echo "AlertmanagerConfig CR not created yet"
+        exit 1
+      else
+        echo "done"
+        exit 0
+      fi
+
+
 
 ---
 
@@ -528,6 +559,19 @@ spec:
 EOF
 ```
 
+::simple-task
+---
+:tasks: tasks
+:name: verify_prometheus_rule_created
+---
+#active
+Waiting for the PrometheusRule CR to be created in the monitoring namespace...
+
+#completed
+Yay! The PrometheusRule CR has been created successfully. 🎉
+::
+
+
 Next, we apply an AlertmanagerConfig custom resource to customize how alerts are routed and handled. While Prometheus generates alerts based on your rules, Alertmanager is responsible for grouping, silencing, and routing those alerts. 
 
 In our example, we configure Alertmanager to route alerts to a "null" receiver, which effectively discards the alerts for demonstration purposes.
@@ -549,6 +593,19 @@ spec:
   - name: 'null'
 EOF
 ```
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_alertmanager_config_created
+---
+#active
+Waiting for the AlertmanagerConfig CR (mysql-null-config) to be created in the monitoring namespace...
+
+#completed
+Awesome! The AlertmanagerConfig CR has been created successfully. 🎉
+::
+
 
 In the Iximiuz Lab interface, switch to the **Prometheus** tab. After applying the alert configuration, refresh your Prometheus UI. You should see the new MySQL downtime alert listed in the alert panel.
 
