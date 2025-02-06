@@ -42,6 +42,12 @@ playground:
       kind: terminal
       name: node-02
       machine: node-02
+      
+    - id: Grafana
+      kind: http-port
+      name: Grafana
+      machine: node-01
+      number: 32000
 
   machines:
     - name: dev-machine
@@ -367,11 +373,30 @@ Yay! Your MySQL cluster is ready. 🎉
 TODO：拆分步骤，添加必要的描述
 ```bash
 kubectl create namespace monitoring
+```
 
+```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus-operator prometheus-community/kube-prometheus-stack --namespace monitoring
+helm install prometheus-operator prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --set grafana.service.type=NodePort \
+  --set grafana.service.nodePort=32000
+```
 
+```bash
 kubectl get pods -n monitoring
+```
+Example Output:
+```bash
+NAME                                                     READY   STATUS    RESTARTS   AGE
+alertmanager-prometheus-operator-kube-p-alertmanager-0   2/2     Running   0          4m24s
+prometheus-operator-grafana-5f5b9584b8-qmzqm             3/3     Running   0          4m30s
+prometheus-operator-kube-p-operator-8fd7b657-rc9c6       1/1     Running   0          4m30s
+prometheus-operator-kube-state-metrics-75597dbd5-xr96v   1/1     Running   0          4m30s
+prometheus-operator-prometheus-node-exporter-bcsqr       1/1     Running   0          4m30s
+prometheus-operator-prometheus-node-exporter-hbvjv       1/1     Running   0          4m30s
+prometheus-operator-prometheus-node-exporter-rpngp       1/1     Running   0          4m30s
+prometheus-prometheus-operator-kube-p-prometheus-0       2/2     Running   0          4m23s
 ```
 
 ### 2.2 Monitor a database cluster
