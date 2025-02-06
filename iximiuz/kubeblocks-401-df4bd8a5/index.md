@@ -541,3 +541,4 @@ TODO:强调kubeblocks采用的是开源方案，跟开源社区紧紧耦合。
     - Links to KubeBlocks documentation on observability.
     - Tutorials on advanced monitoring strategies for Kubernetes.
 
+TODO:重写What’s Next?。鼓励用户尝试kubeblocks与其他引擎，比如postgresql, mongodb, redis等。鼓励用户尝试其他的alert channel。预告501的tutorial
