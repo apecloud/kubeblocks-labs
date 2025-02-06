@@ -86,8 +86,7 @@ categories:
   - databases
 
 tagz:
-  - kubernetes
-  - databases
+  - kubeblocks
 
 tasks:
   #  # 1) Initialization task

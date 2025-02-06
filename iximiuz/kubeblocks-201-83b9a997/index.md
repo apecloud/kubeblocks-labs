@@ -90,8 +90,7 @@ categories:
   - databases
 
 tagz:
-  - kubernetes
-  - databases
+  - kubeblocks
 
 tasks:
 
