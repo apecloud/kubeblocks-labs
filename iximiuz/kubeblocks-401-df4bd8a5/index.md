@@ -6,82 +6,45 @@ description: |
 kind: tutorial
 
 playground:
-  name: k3s
+  name: k3s-bare
 
     # Protect the playground's registry (registry.iximiuz.com) with a username and password.
   # default: no authentication
   registryAuth: testuser:testpassword
 
   tabs:
-    - id: ide-dev-machine
-      kind: ide
-      name: IDE
-      machine: dev-machine
-
-    - id: kexp-dev-machine
-      kind: kexp
-      name: Explorer
-      machine: dev-machine
-
     - id: terminal-dev-machine
       kind: terminal
       name: dev-machine
-      machine: dev-machine
+      machine: k3s-01
       
     - id: Grafana
       kind: http-port
       name: Grafana
-      machine: node-01
+      machine: k3s-01
       number: 32000
       
     - id: Prometheus
       kind: http-port
       name: Prometheus
-      machine: node-01
+      machine: k3s-01
       number: 32001
       
     - id: AlertManager
       kind: http-port
       name: AlertManager
-      machine: node-01
+      machine: k3s-01
       number: 32002
 
   machines:
-    - name: dev-machine
+    - name: k3s-01
       users:
         - name: root
         - name: laborant
           default: true
       resources:
-        cpuCount: 2
-        ramSize: "4G"
-
-    - name: cplane-01
-      users:
-        - name: root
-        - name: laborant
-          default: true
-      resources:
-        cpuCount: 2
-        ramSize: "4G"
-
-    - name: node-01
-      users:
-        - name: root
-        - name: laborant
-          default: true
-      resources:
-        cpuCount: 2
-        ramSize: "4G"
-
-    - name: node-02
-      users:
-        - name: root
-        - name: laborant
-          default: true
-      resources:
-        cpuCount: 2
-        ramSize: "4G"
+        cpuCount: 4
+        ramSize: "8G"
 
 cover: __static__/backup-restore2.png
 
@@ -96,6 +59,13 @@ tagz:
   - kubeblocks
 
 tasks:
+
+  init_task_0:
+    init: true
+    user: laborant
+    run: |
+      kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+      kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 
   # 1) Initialization task
   init_task_1:
