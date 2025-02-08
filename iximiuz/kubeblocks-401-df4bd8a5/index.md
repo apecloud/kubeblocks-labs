@@ -46,7 +46,7 @@ playground:
         cpuCount: 4
         ramSize: "8G"
 
-cover: __static__/backup-restore2.png
+cover: __static__/grafana-1.png
 
 createdAt: 2025-01-16
 updatedAt: 2025-01-16
@@ -59,14 +59,6 @@ tagz:
   - kubeblocks
 
 tasks:
-
-  init_task_0:
-    init: true
-    user: laborant
-    run: |
-      kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
-      kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
-
   # 1) Initialization task
   init_task_1:
     init: true
@@ -482,7 +474,7 @@ Yay! Your MySQL Cluster is exporting metrics. 🎉
 
 With Prometheus and Grafana deployed and properly configured, you can now access and visualize your cluster’s metrics.
 
-In the Iximiuz Lab interface, switch to the **Grafana** tab. Once you are on the Grafana page, log in using the following credentials:
+In the Iximiuz Lab interface, Switch to the :tab-locator-inline{text='Grafana tab' name='Grafana'}. Once you are on the Grafana page, log in using the following credentials:
 
 - **Username:** `admin`
 - **Password:** `prom-operator`
@@ -491,7 +483,9 @@ After logging in, click on the **Home** tab in the left-hand menu, then navigate
 
 These visualizations provide you with real-time insights into your database cluster's health and performance, enabling you to quickly identify and troubleshoot issues, and ensuring that your KubeBlocks-managed database clusters run efficiently.
 
-⏳This may take a minute. If you don't see it, please wait a moment and refresh the tab.
+::remark-box
+⏳ This may take a minute. If you don't see it, please wait a moment and refresh the tab.
+::
 
 ::image-box
 ---
@@ -580,9 +574,11 @@ Awesome! The AlertmanagerConfig CR has been created successfully. 🎉
 ::
 
 
-In the Iximiuz Lab interface, switch to the **Prometheus** tab. After applying the alert configuration, refresh your Prometheus UI. You should see the new MySQL downtime alert listed in the alert panel.
+In the Iximiuz Lab interface, Switch to the :tab-locator-inline{text='Prometheus tab' name='Prometheus'}. After applying the alert configuration, refresh your Prometheus UI. You should see the new MySQL downtime alert listed in the alert panel.
 
-⏳This may take a minute. If you don't see it, please wait a moment and refresh the tab.
+::remark-box
+⏳ This may take a minute. If you don't see it, please wait a moment and refresh the tab.
+::
 
 ::image-box
 ---
