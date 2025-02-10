@@ -1,487 +1,620 @@
 ---
-title: Sample Tutorial
-
+title: KubeBlocks Tutorial 401 – Observability in Action
 description: |
-  This is a sample tutorial that demonstrates main capabilities of the iximiuz Labs content management system.
+  Learn how to run any database on Kubernetes with KubeBlocks!
 
 kind: tutorial
 
 playground:
-  # See https://labs.iximiuz.com/api/playgrounds for available playgrounds
-  name: tetragon
+  name: k3s-bare
 
-  # Protect the playground's registry (registry.iximiuz.com) with a username and password.
+    # Protect the playground's registry (registry.iximiuz.com) with a username and password.
   # default: no authentication
   registryAuth: testuser:testpassword
 
-  # List available tabs (by default IDE, kexp, and one terminal tab per machine are used)
   tabs:
-  - kind: ide             # enable the online IDE (code-server)
-  - kind: kexp            # enable the Kubernetes Visualizer (kexp)
-  - kind: web-page        # embed an external web page
-    url: https://iximiuz.com
-  - machine: docker       # 'docker' is a hostname in this case, implies 'kind: terminal'
-  - number: 80            # expose port 80 on the 'dev-machine' machine as a tab
-    machine: dev-machine  # implies 'kind: http-port'
+    - id: terminal-dev-machine
+      kind: terminal
+      name: dev-machine
+      machine: k3s-01
+      
+    - id: Grafana
+      kind: http-port
+      name: Grafana
+      machine: k3s-01
+      number: 32000
+      
+    - id: Prometheus
+      kind: http-port
+      name: Prometheus
+      machine: k3s-01
+      number: 32001
+      
+    - id: AlertManager
+      kind: http-port
+      name: AlertManager
+      machine: k3s-01
+      number: 32002
 
-  # List available machines (by default, all playground machines are available)
   machines:
-  - name: docker
-    users:
-    - name: laborant
-      default: true
-      welcome: 'Welcome to the jungle!'
-      # Allow the following identities to log in to the machine as this user.
-      # Defaults to ['conductor', '<current-user>']. The special 'conductor'
-      # identity is used by the UI to provide access via the web terminal, and
-      # the <current-user> is used to allow cross-machine access within the same
-      # playground.
-      # sshAuthorizedUsers:
-      #   - conductor
-      #   - laborant
-    # Override default resources (cannot be above the limits of the playground)
-    resources:
-      cpuCount: 1
-      ramSize: "1Gi"
-  - name: kubernetes
-    users:
-    - name: root
-      default: true
-      welcome: '-'  # a hacky way to disable the welcome message
-    # Disable SSH access to the machine (automatically disables the terminal tab)
-    noSSH: true
+    - name: k3s-01
+      users:
+        - name: root
+        - name: laborant
+          default: true
+      resources:
+        cpuCount: 4
+        ramSize: "8G"
 
-cover: __static__/tetragon-architecture.png
+cover: __static__/grafana-1.png
 
-createdAt: 2023-11-14
-updatedAt: 2023-12-02
+createdAt: 2025-01-16
+updatedAt: 2025-01-16
 
-# Up to two values from the following:
-#   - containers
-#   - kubernetes
-#   - linux
-#   - networking
-#   - observability
-#   - security
-#   - ci-cd
 categories:
-  - security
-  - observability
+  - kubernetes
+  - databases
 
-# Up to five values with arbitrary strings (but prefer choosing
-# from the tags already used on the platform).
 tagz:
-  - ebfp
-  - tracing
-  - security-policy
-  - runtime-enforcement
+  - kubeblocks
 
-# Challenges to "embed" into the tutorial's text.
-# See content-challenge-card component in the markdown below.
-# Note: every challenge identifier here is exactly the same as
-# in the challenge's URL but with - replaced with _ (underscore).
-challenges:
-  kubernetes_pod_with_faulty_init_sequence: {}
-  kubernetes_pod_with_sleepy_init_sequence: {}
-
-# Tasks to tweak the tutorial's playground and to verify the user's actions.
 tasks:
-  # Tasks are executed until they complete (exit with code 0).
+  # 1) Initialization task
   init_task_1:
-    # Init tasks are used to finalize the setup of the playground.
-    # Until all init tasks are completed, the playground screen shows
-    # a loading animation. Init tasks run in parallel but before all
-    # regular tasks. If the sequence of the init tasks is important,
-    # you can specify the `needs` property.
     init: true
-    # By default, the task is executed on every machine of the playground.
-    # If the task needs to be executed only on a specific machine, you
-    # can specify it with the `machine` property. Beware, at the moment,
-    # either none or all tasks must have the `machine` property (in the latter case,
-    # different tasks may be executed on different machines).
-    # machine: dev-machine
-
-    # By default, tasks are executed as the `root` user.
-    # If the task needs to be executed as a different user, you
-    # can specify it with the `user` property.
     user: laborant
-
     run: |
-      docker run hello-world
+      sudo rm -rf /usr/local/bin/kbcli
+      export KB_CLI_VERSION=v0.9.2
+      curl -fsSL https://kubeblocks.io/installer/install_cli.sh | bash -s $KB_CLI_VERSION
 
-  # Regular tasks are used to check if a certain user action is completed.
-  # Regular tasks run in parallel but can be serialized with the
-  # `needs` property.
-  verify_container:
-    run: |
-      [ $(docker_container_count_running) -gt 1 ] && echo "Too many running containers" && exit 1
-      [ $(docker_container_count_running) -lt 1 ] && echo "No running containers" && exit 1
-
-      sleep 2  # making sure it's stable enough
-
-      [ $(docker_container_count_running) -gt 1 ] && echo "Too many running containers" && exit 1
-      [ $(docker_container_count_running) -lt 1 ] && echo "No running containers" && exit 1
-
-      docker ps -q --no-trunc
-
-  # Ready tasks are executed in a loop until they either complete (exit with 0)
-  # or fail (exiting with a non-zero code doesn't mean failure, see failcheck for
-  # details). There is a small delay between consecutive executions of the task
-  # (currently 1 second, but it's subject to change).
-  verify_container_id:
+  init_task_2:
+    init: true
+    user: laborant
     needs:
-      - verify_container
-    env:
-      - CONTAINER_ID=x(.needs.verify_container.stdout)
-    # By default, the task will time out after 10 seconds. If you expect a particular
-    # check to take longer (or it intentionally should time out faster), you can
-    # configure the timeout with the `timeout_seconds` property.
-    timeout_seconds: 90
-    # `run` is a mandatory part of each task. The solution checker (examiner)
-    # will keep executing the task's `run` script until it exits with 0.
+      - init_task_1
     run: |
-      PROVIDED_ID="$(cat /tmp/container-id.txt)"
-      if [ "${PROVIDED_ID}" == "" ]; then
-        echo "Provided container ID is empty"
-        exit 1
-      fi
+      export KB_VERSION=v0.9.2
+      kubectl create -f https://github.com/apecloud/kubeblocks/releases/download/$KB_VERSION/kubeblocks_crds.yaml
+      helm repo add kubeblocks https://apecloud.github.io/helm-charts
+      helm repo update
+      helm -n kb-system install kubeblocks kubeblocks/kubeblocks --version 0.9.2 --set dataProtection.encryptionKey='S!B\*d$zDsb=' --create-namespace
 
-      if [[ "${CONTAINER_ID}" != "${PROVIDED_ID}"* ]]; then
-        echo "Container ID is not correct"
-        exit 1
-      fi
-    # If defined, the failcheck is executed before the task's `run` instructions.
-    # If the failcheck exits with a non-zero exit code, the task is considered failed,
-    # and the whole tutorial transitively is marked as failed, too (i.e., the user
-    # will have to restart the tutorial).
-    failcheck: |
-      if ! docker_container_is_running ${CONTAINER_ID}; then
-        echo "The container isn't running anymore. Did it crash?"
-        exit 1
-      fi
-    # Hintcheck is optional. If defined, the solution checker (examiner)
-    # will run the hintcheck script after every task's `run` script.
-    # The exit code of the hintcheck script has no effect on the task's outcome.
-    # Any output of the hintcheck script (stdout and stderr) gets showed in the
-    # task's UI element (so-called, dynamic hints).
-    hintcheck: |
-      if ! docker_container_is_running ${CONTAINER_ID}; then
-        echo "To understand what happened, try running 'docker ps -a'."
-        echo "It'll show all containers, including non-running ones."
-      fi
-
-  verify_container_pid:
+  init_task_3:
+    init: true
+    user: laborant
     needs:
-      - verify_container
-    env:
-      - CONTAINER_ID=x(.needs.verify_container.stdout)
-    failcheck: |
-      if ! docker_container_is_running ${CONTAINER_ID}; then
-        echo "The container isn't running anymore. Did it crash?"
-        exit 1
-      fi
-    hintcheck: |
-      if ! docker_container_is_running ${CONTAINER_ID}; then
-        echo "To understand what happened, try running 'docker ps -a'."
-        echo "It'll show all containers, including non-running ones."
-      fi
+      - init_task_2
     run: |
-      PROVIDED_PID="$(cat /tmp/container-pid.txt)"
-      if [ "${PROVIDED_PID}" == "" ]; then
-        echo "Provided container PID is empty"
-        exit 1
+      kbcli addon enable mysql --set image.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com --set images.registry=apecloud-registry.cn-zhangjiakou.cr.aliyuncs.com
+      kubectl create namespace demo
+      cat <<EOF | kubectl apply -f -
+      apiVersion: apps.kubeblocks.io/v1alpha1
+      kind: Cluster
+      metadata:
+        name: mycluster
+        namespace: demo
+      spec:
+        clusterDefinitionRef: mysql
+        clusterVersionRef: mysql-8.0.33
+        terminationPolicy: Delete
+        affinity:
+          podAntiAffinity: Preferred
+          topologyKeys:
+          - kubernetes.io/hostname
+        tolerations:
+          - key: kb-data
+            operator: Equal
+            value: 'true'
+            effect: NoSchedule
+        componentSpecs:
+        - name: mysql
+          componentDefRef: mysql
+          enabledLogs:
+          - error
+          - slow
+          disableExporter: true
+          replicas: 1
+          serviceAccountName: kb-mycluster
+          resources:
+            limits:
+              cpu: '0.5'
+              memory: 0.5Gi
+            requests:
+              cpu: '0.5'
+              memory: 0.5Gi
+          volumeClaimTemplates:
+          - name: data
+            spec:
+              accessModes:
+              - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 20Gi
+      EOF
+      cat <<EOF | kubectl apply -f -
+      apiVersion: dataprotection.kubeblocks.io/v1alpha1
+      kind: BackupRepo
+      metadata:
+        name: backuprepo
+        namespace: demo
+        annotations:
+          dataprotection.kubeblocks.io/is-default-repo: "true"
+      spec:
+        accessMethod: Mount
+        config:
+          accessMode: ReadWriteOnce
+          storageClassName: local-path
+          volumeMode: Filesystem
+        pvReclaimPolicy: Retain
+        storageProviderRef: pvc
+        volumeCapacity: 20Gi
+      EOF
+
+  # 2) Task to verify kbcli is installed
+  verify_kbcli_installation:
+    run: |
+      kbcli --help
+
+  # 3) Task to verify KubeBlocks is installed
+  verify_kubeblocks_installation:
+    run: |
+      output="$(kubectl get deployment -n kb-system 2>&1)"
+      echo "controlplane \$ k get deployment -n kb-system"
+      echo "$output"
+      if echo "$output" | grep -q "kb-addon-snapshot-controller" \
+          && echo "$output" | grep -q "kubeblocks " \
+          && echo "$output" | grep -q "kubeblocks-dataprotection" \
+          && echo "$output" | grep -q "1/1"
+      then
+          echo "done"
+          exit 0
+      else
+          echo "not ready yet"
+          exit 1
       fi
 
-      if [ "${PROVIDED_PID}" != "$(docker_container_pid ${CONTAINER_ID})" ]; then
-        echo "Container PID is not correct"
-        exit 1
-      fi
-
-  verify_container_ip:
+  # 4) Task to verify MySQL Pod is ready
+  verify_mysql_pod_ready:
     needs:
-      - verify_container
-    env:
-      - CONTAINER_ID=x(.needs.verify_container.stdout)
-    failcheck: |
-      if ! docker_container_is_running ${CONTAINER_ID}; then
-        echo "The container isn't running anymore. Did it crash?"
+      - verify_kubeblocks_installation
+    run: |
+      output="$(kubectl get pods -n demo 2>&1 || true)"
+      echo "controlplane \$ kubectl get pods -n demo"
+      echo "$output"
+      if echo "$output" | grep -q "mycluster-mysql-0.*4/4.*Running"; then
+        echo "done"
+        exit 0
+      else
+        echo "not ready yet"
         exit 1
       fi
-    hintcheck: |
-      if ! docker_container_is_running ${CONTAINER_ID}; then
-        echo "To understand what happened, try running 'docker ps -a'."
-        echo "It'll show all containers, including non-running ones."
-      fi
+      
+  verify_monitor_ready:
+    needs:
+      - verify_kubeblocks_installation
     run: |
-      PROVIDED_IP="$(cat /tmp/container-ip.txt)"
-      if [ "${PROVIDED_IP}" == "" ]; then
-        echo "Provided container IP is empty"
+      output="$(kubectl get pods -n monitoring 2>&1 || true)"
+      echo "controlplane \$ kubectl get pods -n monitoring"
+      echo "$output"
+      if echo "$output" | grep -q "prometheus-operator-grafana.*3/3.*Running"; then
+        echo "done"
+        exit 0
+      else
+        echo "not ready yet"
         exit 1
       fi
 
-      if [ "${PROVIDED_IP}" != "$(docker_container_ip ${CONTAINER_ID})" ]; then
-        echo "Container IP is not correct"
+  verify_disable_exporter_is_false:
+    needs:
+      - verify_kubeblocks_installation
+    run: |
+      output="$(kubectl get cluster -n demo mycluster -o yaml 2>&1 || true)"
+      echo "controlplane \$ kubectl get cluster -n demo mycluster -o yaml"
+      echo "$output"
+      if echo "$output" | grep -q "disableExporter:.*false"; then
+        echo "done"
+        exit 0
+      else
+        echo "disableExporter is not false yet"
         exit 1
       fi
+
+  verify_prometheus_rule_created:
+    needs:
+      - verify_kubeblocks_installation
+    run: |
+      output="$(kubectl get prometheusrule mysql-restart-alert -n monitoring --ignore-not-found 2>&1)"
+      echo "controlplane \$ kubectl get prometheusrule mysql-restart-alert -n monitoring --ignore-not-found"
+      echo "$output"
+      if [ -z "$output" ]; then
+        echo "PrometheusRule CR not created yet"
+        exit 1
+      else
+        echo "done"
+        exit 0
+      fi
+      
+  verify_alertmanager_config_created:
+    needs:
+      - verify_kubeblocks_installation
+    run: |
+      output="$(kubectl get alertmanagerconfig mysql-null-config -n monitoring --ignore-not-found 2>&1)"
+      echo "controlplane \$ kubectl get alertmanagerconfig mysql-null-config -n monitoring --ignore-not-found"
+      echo "$output"
+      if [ -z "$output" ]; then
+        echo "AlertmanagerConfig CR not created yet"
+        exit 1
+      else
+        echo "done"
+        exit 0
+      fi
+
+
+
 ---
 
-[Tetragon](https://github.com/cilium/tetragon/), a CNCF-backed project developed by Isovalent (the creators of Cilium),
-is an eBPF-powered tool for security observability \[_sic_\] and runtime enforcement.
+Welcome to the **fourth chapter** of our **KubeBlocks** tutorial series! 
 
-What it actually means is that Tetragon can:
-- Detect system activity events like process executions, file access, or network I/O.
-- React on security-significant events by sending signals or overriding syscall return values.
+In this tutorial, we’ll explore **Observability**—a key feature of **Operator Capability Level 4**. You’ll learn how to monitor, analyze, and troubleshoot your database clusters on Kubernetes with built-in observability features.
 
-There are other tools that can do similar things, but Tetragon has a few features that make it stand out:
-
-- **Supported environments** - Tetragon can be used in Kubernetes, Docker, and even on plain Linux.
-- **Identity awareness** - Tetragon can detect and react to events based on the identity of the process that triggered them.
-- **Ease of installation** - Tetragon is really easy to install and start using since it doesn't depend on Cilium.
-
-Below is a quick overview of Tetragon's capabilities and architecture.
-
-
-## Quick Example
-
-The playground in this tutorial is three-fold - it has a Kubernetes cluster, a Docker host, and a Linux server,
-all running Tetragon.
+👋 If you find KubeBlocks helpful, please consider giving us a star ⭐️ on our [GitHub repository](https://github.com/apecloud/kubeblocks). Every star motivates us to make KubeBlocks even better!
 
 ::image-box
 ---
-src: __static__/tetragon-install-targets.png
-alt: 'Tetragon installed in a Kubernetes cluster, Docker host, and on a Linux server.'
----
-
-<i>Tetragon installed in a Kubernetes cluster, Docker host, and on a Linux server.</i>
-::
-
-To see Tetragon in action, you can simply run the following command in the playground terminal:
-
-On the :tab-locator-inline{text='Kubernetes host' machine='kubernetes'}:
-
-```sh
-kubectl exec -ti -n kube-system ds/tetragon -c tetragon -- \
-  tetra getevents -o compact
-```
-
-On the :tab-locator-inline{text='Docker host' machine='docker'}:
-
-```sh
-docker exec tetragon tetra getevents -o compact
-```
-
-On the :tab-locator-inline{text='Linux host' machine='linux'}:
-
-```sh
-tetra getevents -o compact
-```
-
-::remark-box
----
-kind: warning
----
-💡 **With vanilla Linux, you may want to put the system at work by running commands in a** :tab-locator-inline{text='separate terminal tab' machine='linux' :new=true}**.** For instance `curl -L labs.iximiuz.com`.
-::
-
-By default, Tetragon will show only the process execution events:
-
-```text
-🚀 process default/nginx /usr/bin/awk  "END { for (name in ENVIRON) { print ( name ~ // ) ? name : "" } }"
-💥 exit    default/nginx /usr/bin/awk  "END { for (name in ENVIRON) { print ( name ~ // ) ? name : "" } }" 0
-💥 exit    default/nginx /docker-entrypoint.d/20-envsubst-on-templates.sh /docker-entrypoint.d/20-envsubst-on-templates.sh 0
-🚀 process default/nginx /docker-entrypoint.d/30-tune-worker-processes.sh /docker-entrypoint.d/30-tune-worker-processes.sh
-🚀 process default/nginx /usr/bin/basename /docker-entrypoint.d/30-tune-worker-processes.sh
-💥 exit    default/nginx /usr/bin/basename /docker-entrypoint.d/30-tune-worker-processes.sh 0
-💥 exit    default/nginx /docker-entrypoint.d/30-tune-worker-processes.sh /docker-entrypoint.d/30-tune-worker-processes.sh 0
-🚀 process default/nginx /usr/sbin/nginx -g "daemon off;"
-```
-
-You can make Tetragon track other types of events by providing one or more **tracing policies**.
-For instance, to start monitoring the network activity, you can apply the following piece of YAML:
-
-```yaml [tracing-policy-01.yaml]
-apiVersion: cilium.io/v1alpha1
-kind: TracingPolicy
-metadata:
-  name: "monitor-network"
-spec:
-  kprobes:               # How to inject (kprobes, tracepoints, uprobes)
-  - call: "tcp_connect"  # Where to inject (syscall, kernel function, tracepoint)
-    syscall: false
-    args:                # Extra data to include in the event
-    - index: 0
-      type: "sock"
-    selectors:
-    - matchArgs:         # How to filter events
-      - index: 0
-        operator: "NotDAddr"
-        values:
-        - 127.0.0.1
-    # matchActions:      # How to react to events (in addition to logging)
-    # - action: Sigkill
-```
-
-:tab-locator-inline{text='In Kubernetes' machine='kubernetes'}, you can apply the above policy using `kubectl`, and the _Tetragon operator_ will take care of configuring the Tetragon daemons running as Pods:
-
-```sh
-kubectl apply -f tracing-policy-01.yaml
-```
-
-:tab-locator-inline{text='In Linux' machine='linux'}, you can add the policy directly using the Tetragon CLI:
-
-```sh
-tetra tracingpolicy add tracing-policy-01.yaml
-```
-
-:tab-locator-inline{text='In Docker' machine='docker'}, you'll need to copy the policy file to the Tetragon container first:
-
-```sh
-docker cp tracing-policy-01.yaml tetragon:/tmp
-```
-
-...but then you can add it using the same command as in Linux:
-
-```sh
-docker exec tetragon tetra tracingpolicy add /tmp/tracing-policy-01.yaml
-```
-
-After applying the above policy, running `curl -L labs.iximiuz.com` will produce something like this:
-
-```text
-🚀 process  /usr/bin/curl iximiuz.com
-🔌 connect  /usr/bin/curl tcp 172.16.0.4:57156 -> 172.67.153.58:80
-💥 exit     /usr/bin/curl iximiuz.com 0
-```
-
-::details-box
----
-:summary: Complete Tetragon event structure 🔎
----
-
-The `-o compact` option of the `tetra getevents` command makes Tetragon print the events in a compact and pretty format.
-However, in real-world scenarios, you'll probably want to omit it and get the raw JSON output instead:
-
-```json
-{
-  "process_exec": {
-    "process": {
-      "exec_id": "OjUzOTU1NDY3NTc4MzU6MTgzMw==",
-      "pid": 1833,
-      "uid": 0,
-      "cwd": "/root",
-      "binary": "/usr/bin/mesg",
-      "arguments": "n",
-      "flags": "execve clone",
-      "start_time": "2023-11-14T17:49:10.127803043Z",
-      "auid": 0,
-      "parent_exec_id": "OjUzOTU0NDg5ODI4MzI6MTgxMw==",
-      "tid": 1833
-    },
-    "parent": {
-      "exec_id": "OjUzOTU0NDg5ODI4MzI6MTgxMw==",
-      "pid": 1813,
-      "uid": 0,
-      "cwd": "/root",
-      "binary": "/bin/bash",
-      "flags": "execve clone",
-      "start_time": "2023-11-14T17:49:10.030031531Z",
-      "auid": 0,
-      "parent_exec_id": "OjUzOTUyODAzMDczMzc6MTgwOQ==",
-      "tid": 1813
-    }
-  },
-  "time": "2023-11-14T17:49:10.127802763Z"
-}
-```
-::
-
-## Tetragon's Architecture
-
-When running on a single server, the Tetragon's architecture is pretty simple:
-
-- The in-kernel eBPF program(s) that track, filter, and react to events.
-- The user space managing daemon that provides a gRPC API for interacting with Tetragon.
-- The command-line client to configure tracing policies and view tracing events.
-
-::image-box
----
-src: __static__/tetragon-architecture.png
-alt: 'Tetragon core architecture.'
+src: __static__/operator-capability-level.png
+alt: 'Operator Capability Level'
 ---
 ::
 
-However, when deployed in Kubernetes, Tetragon gets a few additional components:
-
-- The DaemonSet that launches the Tetragon agent Pods on each node.
-- The Operator that watches for the `TracingPolicy` resources and configures the DaemonSet accordingly.
-- Additionally, every Tetragon agent Pod runs a sidecar container that dumps the tracing events to its stdout so that off-the-shelf log collectors can pick them up.
-
-::image-box
 ---
-src: __static__/tetragon-on-kubernetes.png
-alt: 'Tetragon on Kubernetes.'
----
-::
 
+## Prerequisites
 
-## Writing Tracing Policies
+To save you time, we’ve **automatically installed KubeBlocks** and created a **MySQL cluster** in the background. It may take a few minutes to complete the setup—feel free to proceed, but keep in mind that some commands might need to wait until the installation is fully finished.
 
-That's where the actual power and complexity of Tetragon lies.
-To be able to write tracing policies, you'll need to have a good understanding of the Linux kernel and your runtime (Docker or Kubernetes).
-But once you get the hang of it, you'll be able to do some pretty cool things because you can trace and react to pretty much anything.
-
-Every Tetragon tracing policy consists of one or more **hook points** with one or more **selectors** and possibly a **match action**.
-
-A **hook point** is a location Tetragon will trace the event from within the kernel.
-At the time of writing this post, Tetragon supports:
-
--  _kprobes_ (`cat /proc/kallsyms`) - a kernel-version-specific (i.e., not so portable) way to dynamically hook a BPF program into any kernel function or syscall.
--  _tracepoints_ (`ls /sys/kernel/debug/tracing/events`) - similar to kprobes, but more portable and standardized.
--  _uprobes_ - not much documentation on this one yet (but it's probably coming soon).
-
-To narrow down the events and reduce the overhead, a hook point can use **selectors**.
-Selectors allow in-kernel BPF filtering and the ability to take actions on matching events.
+If you’re new to KubeBlocks or missed the previous tutorials, see:
+- [KubeBlocks Tutorial 101 – Getting Started](/tutorials/kubeblocks-101-99db8bca)
+- [KubeBlocks Tutorial 201 - Seamless Upgrades](/tutorials/kubeblocks-201-83b9a997)
+- [KubeBlocks Tutorial 301 - Backup & Restore](/tutorials/kubeblocks-301-ea1046bf)
 
 ::simple-task
 ---
 :tasks: tasks
-:name: verify_container
+:name: verify_kbcli_installation
 ---
 #active
-Waiting for the container to start...
+Confirming the `kbcli` CLI tool is installed...
 
 #completed
-Yay! The container is running 🎉
+Great! The `kbcli` CLI is available.
 ::
 
-The **(on-)match actions** range from logging the event overriding a return value of a system call to more complex examples, such as socket tracking.
-
-For some inspiration, you can check out the official [Observability Policy Library](https://tetragon.io/docs/policy-library/observability/).
-Most of the examples should be runnable in the playground.
-
-::content-challenge-card
+::simple-task
 ---
-:challenge: challenges.kubernetes_pod_with_faulty_init_sequence
+:tasks: tasks
+:name: verify_kubeblocks_installation
+---
+#active
+Waiting for the KubeBlocks operator pods to be in a ready state...
+
+#completed
+All KubeBlocks components are installed and running!
+::
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_mysql_pod_ready
+---
+#active
+Waiting for the MySQL Pods to become ready...
+
+#completed
+Yay! Your MySQL cluster is ready. 🎉
+::
+
+---
+
+## 1. Introduction
+
+**What is Observability?**
+
+Observability in Kubernetes involves monitoring metrics, logs, and events to gain actionable insights into your system’s behavior. By analyzing this data, you can diagnose issues, pinpoint performance bottlenecks, and ensure that your clusters run smoothly.
+
+**Enhanced Metrics Exporting:**
+
+KubeBlocks automatically deploys a metrics exporter for each database instance (Pod). This built-in exporter collects detailed performance data in real time, seamlessly integrating with Prometheus to help you monitor resource usage and overall system health.
+
+**Key Features:**
+
+* **Metrics:**  
+KubeBlocks scrapes a wide range of cluster metrics via Prometheus, enabling continuous monitoring of resource usage and performance.
+
+* **Alerting:**  
+Set up alerts to notify you when critical events or performance thresholds are exceeded, ensuring issues are addressed promptly.
+
+
+---
+
+## 2. Enabling Observability for a KubeBlocks Cluster
+
+To fully leverage observability in KubeBlocks, you need to set up monitoring tools such as Prometheus and Grafana. Follow the steps below to install and configure these tools in your Kubernetes cluster.
+
+### 2.1 Install Prometheus Operator and Grafana
+
+1. **Create a Monitoring Namespace**  
+It is a best practice to isolate monitoring components in their own namespace. Create a new namespace called `monitoring`:
+
+```bash
+kubectl create namespace monitoring
+```
+
+2. **Add the Prometheus Community Helm Repository**  
+This repository contains the official Helm chart for the Prometheus Operator:
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+```
+
+3. **Install the Prometheus Operator (kube-prometheus-stack)**  
+Use Helm to install the Prometheus Operator and Grafana. This command configures Grafana and Prometheus as NodePort services, exposing them on ports `32000` and `32001` respectively.
+
+```bash
+helm install prometheus-operator prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --timeout 10m \
+  --set grafana.service.type=NodePort \
+  --set grafana.service.nodePort=32000 \
+  --set prometheus.service.type=NodePort \
+  --set prometheus.service.nodePort=32001 \
+  --set alertmanager.service.type=NodePort \
+  --set alertmanager.service.nodePort=32002
+```
+
+4. **Verify the Installation**  
+Check that all the monitoring components are running in the `monitoring` namespace:
+
+```bash
+kubectl get pods -n monitoring
+```
+
+::details-box
+---
+:summary: You should be able to see output like this
+---
+```bash
+NAME                                                     READY   STATUS    RESTARTS   AGE
+alertmanager-prometheus-operator-kube-p-alertmanager-0   2/2     Running   0          4m24s
+prometheus-operator-grafana-5f5b9584b8-qmzqm             3/3     Running   0          4m30s
+prometheus-operator-kube-p-operator-8fd7b657-rc9c6       1/1     Running   0          4m30s
+prometheus-operator-kube-state-metrics-75597dbd5-xr96v   1/1     Running   0          4m30s
+prometheus-operator-prometheus-node-exporter-bcsqr       1/1     Running   0          4m30s
+prometheus-operator-prometheus-node-exporter-hbvjv       1/1     Running   0          4m30s
+prometheus-operator-prometheus-node-exporter-rpngp       1/1     Running   0          4m30s
+prometheus-prometheus-operator-kube-p-prometheus-0       2/2     Running   0          4m23s
+```
+::
+
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_monitor_ready
+---
+#active
+Waiting for the Prometheus & Grafana to become ready...
+
+#completed
+Yay! Prometheus & Grafana is ready. 🎉
+::
+
+### 2.2 Monitor a Database Cluster
+
+After setting up Prometheus and Grafana, configure them to monitor your KubeBlocks database cluster.
+
+1. **Create a PodMonitor Resource**  
+A `PodMonitor` resource instructs Prometheus on which pods to scrape for metrics. In this example, the `PodMonitor` is configured to monitor the MySQL component of your `mycluster` database (running in the `demo` namespace). The labels specified help Prometheus to correctly associate the metrics with your database cluster.
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: mycluster-pod-monitor
+  namespace: monitoring # Namespace where the Prometheus operator is installed
+  labels:               # Labels to match the Prometheus operator’s podMonitorSelector
+    release: prometheus-operator
+spec:
+  jobLabel: app.kubernetes.io/managed-by
+  # Transfer selected labels from the associated pod onto the ingested metrics
+  podTargetLabels:
+  - app.kubernetes.io/instance
+  - app.kubernetes.io/managed-by
+  - apps.kubeblocks.io/component-name
+  - apps.kubeblocks.io/pod-name
+  podMetricsEndpoints:
+    - path: /metrics
+      port: http-metrics
+      scheme: http
+  namespaceSelector:
+    matchNames:
+      - demo
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: mycluster
+      apps.kubeblocks.io/component-name: mysql
+EOF
+```
+
+2. **Enable Metrics Exporter for the Database Cluster**  
+Ensure that your database cluster is exporting metrics by enabling the exporter. Patch the cluster configuration to set `disableExporter` to `false` for the relevant component (in this case, the MySQL component):
+
+```bash
+kubectl patch cluster mycluster -n demo --type "json" -p '[{"op":"add","path":"/spec/componentSpecs/0/disableExporter","value":false}]'
+```
+
+This configuration enables Prometheus to scrape metrics from your MySQL pods, allowing you to monitor the performance and health of your database cluster.
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_disable_exporter_is_false
+---
+#active
+Waiting for the MySQL Cluster to export metrics by enabling the exporter...
+
+#completed
+Yay! Your MySQL Cluster is exporting metrics. 🎉
+::
+
+---
+
+## 3. Accessing and Visualizing Metrics
+
+With Prometheus and Grafana deployed and properly configured, you can now access and visualize your cluster’s metrics.
+
+In the Iximiuz Lab interface, Switch to the :tab-locator-inline{text='Grafana tab' name='Grafana'}. Once you are on the Grafana page, log in using the following credentials:
+
+- **Username:** `admin`
+- **Password:** `prom-operator`
+
+After logging in, click on the **Home** tab in the left-hand menu, then navigate to **Dashboards > APPS / MySQL**. Here, you will find the MySQL Dashboard displaying key metrics such as query performance, resource usage, and overall operational status.
+
+These visualizations provide you with real-time insights into your database cluster's health and performance, enabling you to quickly identify and troubleshoot issues, and ensuring that your KubeBlocks-managed database clusters run efficiently.
+
+::remark-box
+⏳ This may take a minute. If you don't see it, please wait a moment and refresh the tab.
+::
+
+::image-box
+---
+src: __static__/grafana-1.png
+alt: 'Grafana'
 ---
 ::
 
-::content-challenge-card
+
 ---
-:challenge: challenges.kubernetes_pod_with_sleepy_init_sequence
+
+## 4. Alerts and Anomaly Detection
+
+In this section, we create a service-level alert for MySQL to detect when an instance goes offline. This alert monitors the MySQL service in the `demo` namespace and will trigger immediately when an instance goes down.
+
+We create a `PrometheusRule` custom resource (CR) that instructs Prometheus to evaluate the condition for the MySQL service. In this case, if `mysql_up{namespace="demo"}` equals 0, it indicates that the MySQL instance is not running, and an alert will be triggered immediately.
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mysql-restart-alert
+  namespace: monitoring
+  labels:
+    release: prometheus-operator
+spec:
+  groups:
+  - name: mysql.rules
+    rules:
+    - alert: MySQLInstanceDown
+      expr: mysql_up{namespace="demo"} == 0
+      labels:
+        severity: warning
+      annotations:
+        summary: "MySQL instance is down"
+        description: "MySQL instance {{ $labels.pod }} in namespace demo is down"
+EOF
+```
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_prometheus_rule_created
+---
+#active
+Waiting for the PrometheusRule CR to be created in the monitoring namespace...
+
+#completed
+Yay! The PrometheusRule CR has been created successfully. 🎉
+::
+
+
+Next, we apply an AlertmanagerConfig custom resource to customize how alerts are routed and handled. While Prometheus generates alerts based on your rules, Alertmanager is responsible for grouping, silencing, and routing those alerts. 
+
+In our example, we configure Alertmanager to route alerts to a "null" receiver, which effectively discards the alerts for demonstration purposes.
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: mysql-null-config
+  namespace: monitoring
+spec:
+  route:
+    receiver: 'null'
+    groupBy: ['alertname']
+    groupWait: 10s
+    groupInterval: 1m
+  receivers:
+  - name: 'null'
+EOF
+```
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_alertmanager_config_created
+---
+#active
+Waiting for the AlertmanagerConfig CR (mysql-null-config) to be created in the monitoring namespace...
+
+#completed
+Awesome! The AlertmanagerConfig CR has been created successfully. 🎉
+::
+
+
+In the Iximiuz Lab interface, Switch to the :tab-locator-inline{text='Prometheus tab' name='Prometheus'}. After applying the alert configuration, refresh your Prometheus UI. You should see the new MySQL downtime alert listed in the alert panel.
+
+::remark-box
+⏳ This may take a minute. If you don't see it, please wait a moment and refresh the tab.
+::
+
+::image-box
+---
+src: __static__/alert.png
+alt: 'Alert Panel'
 ---
 ::
 
-## Conclusion
+To simulate a failure and verify that the alert is correctly triggered, delete the MySQL pods:
 
-Tetragon is a powerful and easy-to-install tool that can help you detect and react to security-significant events in your infrastructure.
-However, it's also a pretty low-level tool that requires a good understanding of the Linux kernel and your runtime.
-Unlike Cilium, Tetragon (at least its OSS version) doesn't have L3-L7 protocol awareness, so its tracing policies cannot be as expressive as Kubernetes network policies.
-At the same time, Tetragon is a lot more flexible than Cilium, can be used in a wider range of environments, and might be a good choice for a programmable engine if you want to build your own security observability tool.
+```bash
+kubectl delete pods mycluster-mysql-0 -n demo
+```
 
-### Further reading
+After the pods are deleted, return to the Prometheus alert panel, refresh the tab to see the triggered alert.
 
-- [Getting Started with Tetragon](https://isovalent.com/labs/security-observability-with-ebpf-and-cilium-tetragon/) - A really cool hands-on lab that shows how to detect and block a container escape attack with Tetragon.
-- [Tetragon – eBPF-based Security Observability & Runtime Enforcement](https://isovalent.com/blog/post/2022-05-16-tetragon/) - A blog post on the motivation behind Tetragon and its architecture.
-- [Can I Use Tetragon without Cilium? Yes!](https://isovalent.com/blog/post/can-i-use-tetragon-without-cilium-yes/) - A highly practical blog post on how to use Tetragon in Cilium-free Kubernetes clusters.
-- [Tetragon GitHub repository](https://github.com/cilium/tetragon/).
-- [Official documentation](https://tetragon.io/docs/overview/).
+::image-box
+---
+src: __static__/alert-firing.png
+alt: 'Firing Alert'
+---
+::
+
+
+---
+
+## Summary
+
+In this tutorial, we demonstrated how to enable and leverage observability features in KubeBlocks. We showed you how to deploy Prometheus and Grafana to monitor metrics, set up a PodMonitor to scrape data from your MySQL cluster, and configure alerts to detect service anomalies.
+
+It is important to note that KubeBlocks leverages open source solutions and integrates tightly with the open source community. This approach ensures that our observability features benefit from continuous improvements and community support.
+
+---
+
+## What’s Next?
+
+* Experiment with KubeBlocks on other database engines such as PostgreSQL, MongoDB, and Redis. 
+* Try integrating different alert channels and custom dashboards to tailor the monitoring experience to your environment.
+* Stay tuned for our upcoming Tutorial 501, where we'll explore advanced auto-tuning and optimization features aligned with Operator Capability Level 5.
