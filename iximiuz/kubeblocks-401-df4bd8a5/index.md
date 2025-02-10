@@ -426,7 +426,7 @@ metadata:
   labels:               # Labels to match the Prometheus operator’s podMonitorSelector
     release: prometheus-operator
 spec:
-  jobLabel: kubeblocks-service
+  jobLabel: app.kubernetes.io/managed-by
   # Transfer selected labels from the associated pod onto the ingested metrics
   podTargetLabels:
   - app.kubernetes.io/instance
