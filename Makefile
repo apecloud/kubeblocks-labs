@@ -9,3 +9,6 @@ push301:
 
 push401:
 	labctl content push tutorial kubeblocks-401-df4bd8a5 -f -d iximiuz/kubeblocks-401-df4bd8a5
+
+push501:
+	labctl content push tutorial kubeblocks-501-28bb17dc -f -d iximiuz/kubeblocks-501-28bb17dc
