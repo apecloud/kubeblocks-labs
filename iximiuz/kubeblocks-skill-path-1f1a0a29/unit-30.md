@@ -8,12 +8,12 @@ createdAt: 2024-09-01
 updatedAt: 2024-09-01
 
 tutorials:
-  kubeblocks-301-ea1046bf: {}
+  kubeblocks_301_ea1046bf: {}
 ---
 
 ::card-content
 ---
-:content: tutorials.kubeblocks-301-ea1046bf
+:content: tutorials.kubeblocks_301_ea1046bf
 ---
 ::
 

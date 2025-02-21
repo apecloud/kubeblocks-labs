@@ -8,12 +8,12 @@ createdAt: 2024-09-01
 updatedAt: 2024-09-01
 
 tutorials:
-  kubeblocks-401-df4bd8a5: {}
+  kubeblocks_401_df4bd8a5: {}
 ---
 
 ::card-content
 ---
-:content: tutorials.kubeblocks-401-df4bd8a5
+:content: tutorials.kubeblocks_401_df4bd8a5
 ---
 ::
 

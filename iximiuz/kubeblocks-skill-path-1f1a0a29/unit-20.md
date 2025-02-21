@@ -8,12 +8,12 @@ createdAt: 2024-09-01
 updatedAt: 2024-09-01
 
 tutorials:
-  kubeblocks-201-83b9a997: {}
+  kubeblocks_201_83b9a997: {}
 ---
 
 ::card-content
 ---
-:content: tutorials.kubeblocks-201-83b9a997
+:content: tutorials.kubeblocks_201_83b9a997
 ---
 ::
 

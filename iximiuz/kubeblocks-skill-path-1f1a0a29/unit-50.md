@@ -8,12 +8,12 @@ createdAt: 2024-09-01
 updatedAt: 2024-09-01
 
 tutorials:
-  kubeblocks-501-28bb17dc: {}
+  kubeblocks_501_28bb17dc: {}
 ---
 
 ::card-content
 ---
-:content: tutorials.kubeblocks-501-28bb17dc
+:content: tutorials.kubeblocks_501_28bb17dc
 ---
 ::
 
