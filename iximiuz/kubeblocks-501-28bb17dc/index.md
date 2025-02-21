@@ -46,7 +46,7 @@ playground:
         cpuCount: 4
         ramSize: "8G"
 
-cover: __static__/grafana-1.png
+cover: __static__/operator-capability-level.png
 
 createdAt: 2025-01-16
 updatedAt: 2025-01-16
