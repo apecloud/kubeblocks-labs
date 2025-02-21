@@ -400,3 +400,4 @@ While KubeBlocks doesn’t yet support auto-scaling, its parameter tuning aligns
 - Experiment with Auto-Tuning on other engines.
 - Customize configuration templates for specific workloads.
 - Keep an eye on KubeBlocks updates for more Level 5 features.
+- Visit [kubeblocks.io](https://kubeblocks.io/) to explore additional features and capabilities KubeBlocks has to offer!
