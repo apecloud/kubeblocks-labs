@@ -92,7 +92,7 @@ tasks:
       apiVersion: apps.kubeblocks.io/v1alpha1
       kind: Cluster
       metadata:
-        name: mysql-cmpd-cluster
+        name: mycluster
         namespace: demo
       spec:
         terminationPolicy: Delete
@@ -101,7 +101,7 @@ tasks:
             componentDef: "mysql-8.0"
             serviceVersion: 8.0.33
             disableExporter: true
-            replicas: 2
+            replicas: 1
             resources:
               limits:
                 cpu: '0.5'
