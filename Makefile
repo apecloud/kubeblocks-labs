@@ -12,3 +12,6 @@ push401:
 
 push501:
 	labctl content push tutorial kubeblocks-501-28bb17dc -f -d iximiuz/kubeblocks-501-28bb17dc
+
+push-skill-path:
+	labctl content push skill-path kubeblocks-skill-path-1f1a0a29 -f -d iximiuz/kubeblocks-skill-path-1f1a0a29
