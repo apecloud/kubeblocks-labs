@@ -177,6 +177,20 @@ tasks:
         exit 1
       fi
 
+  verify_memory_changed:
+    needs:
+      - verify_kubeblocks_installation  # Assuming this is a prerequisite, adjust as needed
+    run: |
+      output="$(kubectl get cluster mycluster -n demo -o jsonpath='{.spec.componentSpecs[0].resources.limits.memory}' 2>&1 || true)"
+      echo "controlplane \$ kubectl get cluster mycluster -n demo -o jsonpath='{.spec.componentSpecs[0].resources.limits.memory}'"
+      echo "$output"
+      if [ "$output" = "1000Mi" ]; then
+        echo "done"
+        exit 0
+      else
+        echo "memory limit is not 1000Mi yet, current value: $output"
+        exit 1
+      fi
 
 ---
 
@@ -301,6 +315,17 @@ Increase the memory from 0.5Gi to 1Gi:
 kbcli cluster vscale mycluster -n demo --components=mysql --cpu=500m --memory=1000Mi
 ```
 
+
+::simple-task
+---
+:tasks: tasks
+:name: verify_memory_changed
+---
+#active
+Waiting for the Memory to change...
+#completed
+Yay! 🎉🎉🎉
+::
 
 
 Recheck `max_connections`:
