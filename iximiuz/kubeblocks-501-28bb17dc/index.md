@@ -328,7 +328,7 @@ Yay! 🎉🎉🎉
 ::
 
 
-Recheck `max_connections`:
+Wait a few seconds for the MySQL pod to restart, Then recheck `max_connections`:
 ```bash
 kbcli cluster connect mycluster -n demo
 
