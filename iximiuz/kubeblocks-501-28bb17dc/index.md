@@ -169,74 +169,13 @@ tasks:
       output="$(kubectl get pods -n demo 2>&1 || true)"
       echo "controlplane \$ kubectl get pods -n demo"
       echo "$output"
-      if echo "$output" | grep -q "mycluster-mysql-0.*4/4.*Running"; then
+      if echo "$output" | grep -q "mycluster-mysql-0.*Running"; then
         echo "done"
         exit 0
       else
         echo "not ready yet"
         exit 1
       fi
-      
-  verify_monitor_ready:
-    needs:
-      - verify_kubeblocks_installation
-    run: |
-      output="$(kubectl get pods -n monitoring 2>&1 || true)"
-      echo "controlplane \$ kubectl get pods -n monitoring"
-      echo "$output"
-      if echo "$output" | grep -q "prometheus-operator-grafana.*3/3.*Running"; then
-        echo "done"
-        exit 0
-      else
-        echo "not ready yet"
-        exit 1
-      fi
-
-  verify_disable_exporter_is_false:
-    needs:
-      - verify_kubeblocks_installation
-    run: |
-      output="$(kubectl get cluster -n demo mycluster -o yaml 2>&1 || true)"
-      echo "controlplane \$ kubectl get cluster -n demo mycluster -o yaml"
-      echo "$output"
-      if echo "$output" | grep -q "disableExporter:.*false"; then
-        echo "done"
-        exit 0
-      else
-        echo "disableExporter is not false yet"
-        exit 1
-      fi
-
-  verify_prometheus_rule_created:
-    needs:
-      - verify_kubeblocks_installation
-    run: |
-      output="$(kubectl get prometheusrule mysql-restart-alert -n monitoring --ignore-not-found 2>&1)"
-      echo "controlplane \$ kubectl get prometheusrule mysql-restart-alert -n monitoring --ignore-not-found"
-      echo "$output"
-      if [ -z "$output" ]; then
-        echo "PrometheusRule CR not created yet"
-        exit 1
-      else
-        echo "done"
-        exit 0
-      fi
-      
-  verify_alertmanager_config_created:
-    needs:
-      - verify_kubeblocks_installation
-    run: |
-      output="$(kubectl get alertmanagerconfig mysql-null-config -n monitoring --ignore-not-found 2>&1)"
-      echo "controlplane \$ kubectl get alertmanagerconfig mysql-null-config -n monitoring --ignore-not-found"
-      echo "$output"
-      if [ -z "$output" ]; then
-        echo "AlertmanagerConfig CR not created yet"
-        exit 1
-      else
-        echo "done"
-        exit 0
-      fi
-
 
 
 ---
@@ -333,11 +272,11 @@ In this lab, we’ll:
 
 ---
 
-## 3. Auto-Tuning in Action: Dynamic Parameter Adjustment
+## 2. Auto-Tuning in Action: Dynamic Parameter Adjustment
 
 Let’s explore how KubeBlocks auto-tunes MySQL parameters when resources change.
 
-### 3.1 Check Initial Parameters
+### 2.1 Check Initial Parameters
 
 Connect to the MySQL cluster:
 ```bash
@@ -355,51 +294,84 @@ mysql> SHOW VARIABLES LIKE 'max_connections';
 1 row in set (0.01 sec)
 ```
 
-### 3.2 Adjust Resources and Trigger Auto-Tuning
+### 2.2 Adjust Resources and Trigger Auto-Tuning
 
-Increase the memory from 0.5Gi to 2Gi:
+Increase the memory from 0.5Gi to 1Gi:
 ```bash
-kbcli cluster update mycluster --memory 2Gi -n demo
+kbcli cluster vscale mycluster -n demo --components=mysql --cpu=500m --memory=1000Mi
 ```
 
-::simple-task
----
-:tasks: tasks
-:name: verify_resource_updated
----
-#active
-Waiting for resource update to complete...
-#completed
-Resources updated successfully! 🎉
-::
+
 
 Recheck `max_connections`:
 ```bash
-kbcli cluster connect mycluster -n demo -- mysql -e "SHOW VARIABLES LIKE 'max_connections';"
-```
-Example output:
-```
-Variable_name    Value
-max_connections  300
-```
-**Explanation:** KubeBlocks detected the memory increase and automatically adjusted `max_connections` to optimize for the new resource capacity.
+kbcli cluster connect mycluster -n demo
 
+```
+Then inspect the `max_connections` parameter:
+```bash
+mysql> SHOW VARIABLES LIKE 'max_connections';
++-----------------+-------+
+| Variable_name   | Value |
++-----------------+-------+
+| max_connections | 163   |
++-----------------+-------+
+1 row in set (0.01 sec)
+```
+
+KubeBlocks detected the memory increase and automatically adjusted `max_connections` to optimize for the new resource capacity.
+
+::details-box
+---
+:summary: Why is max_connections limited to 163 with 1000Mi memory?
+---
+KubeBlocks calculates `max_connections` in MySQL as `(PhysicalMemory - innodb_buffer_pool_size) / single_thread_memory` as a best practice for resource optimization. 
+
+This approach ensures efficient memory use by reserving most memory (typically 75%) for the `innodb_buffer_pool_size` to cache data, reducing disk I/O, while allocating the rest to client connections. 
+
+It prevents memory exhaustion by limiting connections based on per-thread memory needs (e.g., `thread_stack`, `join_buffer_size`), avoiding crashes under high load. 
+
+This balance enhances performance and stability, making it ideal for containerized environments like Kubernetes where resources are constrained and predictable scaling is key.
+::
 
 ---
 
-## 5. Summary
+## 3. KubeBlocks and Operator Capability Level 5
+
+Operator Capability Level 5 represents the highest level of Operator maturity, aiming to achieve an “Auto Pilot” state that minimizes manual intervention to the greatest extent possible. The core features of Level 5 include **Auto-Scaling**, **Auto-Healing**, **Abnormality Detection**, and **Auto-Tuning**. Let’s examine how KubeBlocks performs at this level.
+
+### 3.1 Support for Manual Scaling
+
+KubeBlocks provides robust support for manual scaling, including:
+- **Scale In/Out (Horizontal Scaling):** Users can increase or decrease the number of database instances.
+- **Scale Up/Down (Vertical Scaling):** Users can adjust the resource configurations of individual instances, such as CPU and memory.
+
+For example, using the `kbcli cluster vscale` command (as demonstrated in Section 2.2), users can easily modify the memory allocation for a MySQL instance. This manual scaling capability offers flexibility, allowing users to adapt the cluster size to workload demands. However, KubeBlocks does not currently support automatic scaling, meaning it cannot dynamically adjust the number of instances or resources based on load metrics (e.g., requests per second).
+
+### 3.2 Automatic Parameter Tuning
+
+When it comes to auto-tuning, KubeBlocks excels. It automatically adjusts database parameters in response to changes in resource specifications. For instance, after increasing the memory allocated to MySQL, KubeBlocks updates the `max_connections` parameter to match the new resource capacity. This feature reduces the need for manual parameter adjustments, ensuring that database performance remains aligned with available resources.
+
+### 3.3 Auto-Healing and Abnormality Detection
+
+KubeBlocks demonstrates strong capabilities in auto-healing and abnormality detection:
+- **Automatic Restarts and Failover:** Upon detecting a Pod failure, KubeBlocks not only restarts the Pod but can also perform a **switch-over**, promptly reassigning the leader role to a healthy instance. This mechanism significantly enhances database high availability, enabling rapid service recovery, especially during primary node failures.
+- **Monitoring Integration:** Through integration with Prometheus and Grafana, KubeBlocks continuously monitors database health and performance metrics in real-time, detecting anomalies and triggering corrective actions as needed.
+
+---
+
+## 4. Summary
 
 In this tutorial, we explored KubeBlocks’ Auto-Tuning capabilities:
 - Automatically adjusting parameters like `max_connections` based on resource specs.
-- Leveraging observability to detect and resolve performance issues.
 - Reducing manual intervention for efficient database management.
 
 While KubeBlocks doesn’t yet support auto-scaling, its parameter tuning aligns with Level 5’s “Auto Pilot” vision. Stay tuned for future enhancements like automated scaling!
 
 ---
 
-## 6. What’s Next?
+## 5. What’s Next?
 
-- Experiment with Auto-Tuning on other engines like PostgreSQL or Redis.
+- Experiment with Auto-Tuning on other engines.
 - Customize configuration templates for specific workloads.
 - Keep an eye on KubeBlocks updates for more Level 5 features.
