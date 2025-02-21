@@ -254,11 +254,9 @@ tasks:
 
 ---
 
-## KubeBlocks Tutorial 501 – Auto-Tuning for Optimal Performance
-
 Welcome to the **fifth chapter** of our **KubeBlocks** tutorial series!
 
-In this tutorial, we dive into **Operator Capability Level 5 - Auto Pilot**, focusing on **Auto-Tuning**. You’ll learn how KubeBlocks dynamically adjusts database parameters based on resource specifications to optimize performance, reducing manual intervention. We’ll also leverage observability tools from Level 4 to detect bottlenecks and fine-tune configurations.
+In this tutorial, we dive into **Operator Capability Level 5**, focusing on **Auto-Tuning**. You’ll learn how KubeBlocks dynamically adjusts database parameters based on resource specifications to optimize performance, reducing manual intervention. 
 
 👋 If you find KubeBlocks helpful, please consider giving us a star ⭐️ on our [GitHub repository](https://github.com/apecloud/kubeblocks). Your support drives us to improve!
 
@@ -279,7 +277,7 @@ If you’re new to KubeBlocks or missed earlier tutorials, check out:
 - [KubeBlocks Tutorial 101 – Getting Started](/tutorials/kubeblocks-101-99db8bca)
 - [KubeBlocks Tutorial 201 - Seamless Upgrades](/tutorials/kubeblocks-201-83b9a997)
 - [KubeBlocks Tutorial 301 - Backup & Restore](/tutorials/kubeblocks-301-ea1046bf)
-- [KubeBlocks Tutorial 401 – Observability in Action](/tutorials/kubeblocks-401-xxxxxxxx)
+- [KubeBlocks Tutorial 401 – Observability in Action](/tutorials/kubeblocks-401-df4bd8a5)
 
 ::simple-task
 ---
@@ -322,98 +320,29 @@ Yay! Your MySQL cluster is ready. 🎉
 
 At Operator Capability Level 5, Auto-Tuning refers to the Operator’s ability to dynamically adjust an application’s configuration based on workload patterns or resource changes, ensuring optimal performance with minimal manual effort. KubeBlocks supports this by automatically tuning database parameters (e.g., MySQL’s `max_connections`) when resource specifications (like memory) are updated.
 
+::details-box
+---
+:summary: Why does even MySQL bother to limit max_connections?
+---
+MySQL limits connections for resource management reasons. Each connection consumes memory resources, including various buffers allocated for that connection. 
+
+MySQL needs to reserve substantial memory for its buffer pool to cache data and indexes for efficient query performance. 
+
+If connections were unlimited, too many connections could consume excessive memory, squeezing the space available for the buffer pool, ultimately leading to degraded query performance. 
+
+Therefore, limiting max_connections is a necessary measure to protect database performance and stability.
+::
+
 **Goals of This Tutorial**
 
 In this lab, we’ll:
 - Demonstrate how KubeBlocks auto-tunes MySQL parameters based on resource changes.
-- Use observability tools to detect performance bottlenecks.
 - Optimize configurations to showcase the "Auto Pilot" philosophy of reducing manual intervention.
 
 **Key Features:**
 - **Parameter Auto-Tuning:** Adjusts database settings based on resource specs.
-- **Performance Insights:** Leverages Prometheus and Grafana for bottleneck detection.
 - **Automation Focus:** Minimizes manual configuration for better efficiency.
-
----
-
-## 2. Setting Up the Environment
-
-We’ll set up a MySQL cluster and prepare observability tools to monitor its performance.
-
-### 2.1 Create a MySQL Cluster
-
-Let’s start with a simple MySQL cluster using modest resources:
-```bash
-kbcli cluster create mycluster --type mysql --replicas 1 \
-  --cpu 0.5 --memory 0.5Gi --namespace demo
-```
-
-::simple-task
----
-:tasks: tasks
-:name: verify_cluster_created
----
-#active
-Waiting for the MySQL cluster to be created...
-#completed
-Success! The MySQL cluster is up and running. 🎉
-::
-
-### 2.2 Enable Metrics Exporter
-
-Ensure the cluster exports metrics (building on Tutorial 401):
-```bash
-kubectl patch cluster mycluster -n demo --type "json" -p '[{"op":"add","path":"/spec/componentSpecs/0/disableExporter","value":false}]'
-```
-
-::simple-task
----
-:tasks: tasks
-:name: verify_disable_exporter_is_false
----
-#active
-Waiting for the MySQL cluster to export metrics...
-#completed
-Yay! Your MySQL cluster is exporting metrics. 🎉
-::
-
-### 2.3 Set Up Prometheus and Grafana
-
-We assume Prometheus and Grafana are already installed in the `monitoring` namespace (as in Tutorial 401). If not, refer to Tutorial 401’s Section 2.1 to install them. Verify they’re running:
-```bash
-kubectl get pods -n monitoring
-```
-
-Configure a `PodMonitor` to scrape metrics from `mycluster` (reuse the setup from Tutorial 401):
-```bash
-kubectl apply -f - <<EOF
-apiVersion: monitoring.coreos.com/v1
-kind: PodMonitor
-metadata:
-  name: mycluster-pod-monitor
-  namespace: monitoring
-  labels:
-    release: prometheus-operator
-spec:
-  jobLabel: app.kubernetes.io/managed-by
-  podTargetLabels:
-  - app.kubernetes.io/instance
-  - app.kubernetes.io/managed-by
-  - apps.kubeblocks.io/component-name
-  - apps.kubeblocks.io/pod-name
-  podMetricsEndpoints:
-    - path: /metrics
-      port: http-metrics
-      scheme: http
-  namespaceSelector:
-    matchNames:
-      - demo
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: mycluster
-      apps.kubeblocks.io/component-name: mysql
-EOF
-```
+- **Performance Insights:** Leverages Prometheus and Grafana for bottleneck detection.
 
 ---
 
@@ -423,14 +352,20 @@ Let’s explore how KubeBlocks auto-tunes MySQL parameters when resources change
 
 ### 3.1 Check Initial Parameters
 
-Connect to the MySQL cluster and inspect the `max_connections` parameter:
+Connect to the MySQL cluster:
 ```bash
-kbcli cluster connect mycluster -n demo -- mysql -e "SHOW VARIABLES LIKE 'max_connections';"
+kbcli cluster connect mycluster -n demo
+
 ```
-Example output:
-```
-Variable_name    Value
-max_connections  151
+Then inspect the `max_connections` parameter:
+```bash
+mysql> SHOW VARIABLES LIKE 'max_connections';
++-----------------+-------+
+| Variable_name   | Value |
++-----------------+-------+
+| max_connections | 83    |
++-----------------+-------+
+1 row in set (0.01 sec)
 ```
 
 ### 3.2 Adjust Resources and Trigger Auto-Tuning
@@ -462,78 +397,6 @@ max_connections  300
 ```
 **Explanation:** KubeBlocks detected the memory increase and automatically adjusted `max_connections` to optimize for the new resource capacity.
 
-### 3.3 Validate Performance Improvement
-
-Switch to the :tab-locator-inline{text='Grafana tab' name='Grafana'} in the Iximiuz Lab interface. Log in with:
-- **Username:** `admin`
-- **Password:** `prom-operator`
-
-Navigate to **Dashboards > APPS / MySQL** to view metrics like connection usage and resource utilization. The increased memory and `max_connections` should allow more concurrent connections without strain.
-
-::image-box
----
-src: __static__/grafana-mysql-connections.png
-alt: 'Grafana MySQL Connections Dashboard'
----
-::
-
----
-
-## 4. Detecting Anomalies and Optimizing Performance
-
-Using Level 4 observability, we’ll simulate a workload, detect bottlenecks, and optimize the configuration.
-
-### 4.1 Simulate a High Workload
-
-Run a stress test with `mysqlslap` to simulate high concurrency:
-```bash
-kbcli cluster connect mycluster -n demo -- mysqlslap --concurrency=200 --iterations=10 --number-of-queries=1000 --create-schema=test
-```
-
-### 4.2 Identify Performance Bottlenecks
-
-Forward the Prometheus port:
-```bash
-kubectl port-forward svc/prometheus-operator-prometheus -n monitoring 9090:9090 &
-```
-Visit `http://localhost:9090` and query:
-```
-mysql_global_status_threads_connected{namespace="demo"}
-```
-If the number of active connections nears `max_connections` (e.g., 300), you risk connection refusals under heavier loads.
-
-### 4.3 Optimize Configuration
-
-Manually adjust `max_connections` to 500 (simulating a future auto-tuning capability):
-```bash
-kbcli cluster configure mycluster --set max_connections=500 -n demo
-```
-
-::simple-task
----
-:tasks: tasks
-:name: verify_config_applied
----
-#active
-Waiting for configuration to be applied...
-#completed
-Configuration updated successfully! 🎉
-::
-
-### 4.4 Verify Optimization
-
-Rerun the `mysqlslap` test:
-```bash
-kbcli cluster connect mycluster -n demo -- mysqlslap --concurrency=200 --iterations=10 --number-of-queries=1000 --create-schema=test
-```
-Check Grafana again to confirm the cluster handles the load without hitting connection limits.
-
-::image-box
----
-src: __static__/grafana-optimized.png
-alt: 'Grafana Optimized Performance'
----
-::
 
 ---
 
