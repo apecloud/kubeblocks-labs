@@ -1,5 +1,5 @@
 ---
-title: KubeBlocks Tutorial 401 – Observability in Action
+title: KubeBlocks Tutorial 501 – Auto-Tuning for Optimal Performance
 description: |
   Learn how to run any database on Kubernetes with KubeBlocks!
 
@@ -254,11 +254,13 @@ tasks:
 
 ---
 
-Welcome to the **fourth chapter** of our **KubeBlocks** tutorial series! 
+## KubeBlocks Tutorial 501 – Auto-Tuning for Optimal Performance
 
-In this tutorial, we’ll explore **Observability**—a key feature of **Operator Capability Level 4**. You’ll learn how to monitor, analyze, and troubleshoot your database clusters on Kubernetes with built-in observability features.
+Welcome to the **fifth chapter** of our **KubeBlocks** tutorial series!
 
-👋 If you find KubeBlocks helpful, please consider giving us a star ⭐️ on our [GitHub repository](https://github.com/apecloud/kubeblocks). Every star motivates us to make KubeBlocks even better!
+In this tutorial, we dive into **Operator Capability Level 5 - Auto Pilot**, focusing on **Auto-Tuning**. You’ll learn how KubeBlocks dynamically adjusts database parameters based on resource specifications to optimize performance, reducing manual intervention. We’ll also leverage observability tools from Level 4 to detect bottlenecks and fine-tune configurations.
+
+👋 If you find KubeBlocks helpful, please consider giving us a star ⭐️ on our [GitHub repository](https://github.com/apecloud/kubeblocks). Your support drives us to improve!
 
 ::image-box
 ---
@@ -271,12 +273,13 @@ alt: 'Operator Capability Level'
 
 ## Prerequisites
 
-To save you time, we’ve **automatically installed KubeBlocks** and created a **MySQL cluster** in the background. It may take a few minutes to complete the setup—feel free to proceed, but keep in mind that some commands might need to wait until the installation is fully finished.
+To save you time, we’ve **automatically installed KubeBlocks** and created a **MySQL cluster** in the background. The setup might take a few minutes—feel free to proceed, but some commands may require the installation to complete first.
 
-If you’re new to KubeBlocks or missed the previous tutorials, see:
+If you’re new to KubeBlocks or missed earlier tutorials, check out:
 - [KubeBlocks Tutorial 101 – Getting Started](/tutorials/kubeblocks-101-99db8bca)
 - [KubeBlocks Tutorial 201 - Seamless Upgrades](/tutorials/kubeblocks-201-83b9a997)
 - [KubeBlocks Tutorial 301 - Backup & Restore](/tutorials/kubeblocks-301-ea1046bf)
+- [KubeBlocks Tutorial 401 – Observability in Action](/tutorials/kubeblocks-401-xxxxxxxx)
 
 ::simple-task
 ---
@@ -285,7 +288,6 @@ If you’re new to KubeBlocks or missed the previous tutorials, see:
 ---
 #active
 Confirming the `kbcli` CLI tool is installed...
-
 #completed
 Great! The `kbcli` CLI is available.
 ::
@@ -297,7 +299,6 @@ Great! The `kbcli` CLI is available.
 ---
 #active
 Waiting for the KubeBlocks operator pods to be in a ready state...
-
 #completed
 All KubeBlocks components are installed and running!
 ::
@@ -309,7 +310,6 @@ All KubeBlocks components are installed and running!
 ---
 #active
 Waiting for the MySQL Pods to become ready...
-
 #completed
 Yay! Your MySQL cluster is ready. 🎉
 ::
@@ -318,116 +318,84 @@ Yay! Your MySQL cluster is ready. 🎉
 
 ## 1. Introduction
 
-**What is Observability?**
+**What is Auto-Tuning?**
 
-Observability in Kubernetes involves monitoring metrics, logs, and events to gain actionable insights into your system’s behavior. By analyzing this data, you can diagnose issues, pinpoint performance bottlenecks, and ensure that your clusters run smoothly.
+At Operator Capability Level 5, Auto-Tuning refers to the Operator’s ability to dynamically adjust an application’s configuration based on workload patterns or resource changes, ensuring optimal performance with minimal manual effort. KubeBlocks supports this by automatically tuning database parameters (e.g., MySQL’s `max_connections`) when resource specifications (like memory) are updated.
 
-**Enhanced Metrics Exporting:**
+**Goals of This Tutorial**
 
-KubeBlocks automatically deploys a metrics exporter for each database instance (Pod). This built-in exporter collects detailed performance data in real time, seamlessly integrating with Prometheus to help you monitor resource usage and overall system health.
+In this lab, we’ll:
+- Demonstrate how KubeBlocks auto-tunes MySQL parameters based on resource changes.
+- Use observability tools to detect performance bottlenecks.
+- Optimize configurations to showcase the "Auto Pilot" philosophy of reducing manual intervention.
 
 **Key Features:**
-
-* **Metrics:**  
-KubeBlocks scrapes a wide range of cluster metrics via Prometheus, enabling continuous monitoring of resource usage and performance.
-
-* **Alerting:**  
-Set up alerts to notify you when critical events or performance thresholds are exceeded, ensuring issues are addressed promptly.
-
+- **Parameter Auto-Tuning:** Adjusts database settings based on resource specs.
+- **Performance Insights:** Leverages Prometheus and Grafana for bottleneck detection.
+- **Automation Focus:** Minimizes manual configuration for better efficiency.
 
 ---
 
-## 2. Enabling Observability for a KubeBlocks Cluster
+## 2. Setting Up the Environment
 
-To fully leverage observability in KubeBlocks, you need to set up monitoring tools such as Prometheus and Grafana. Follow the steps below to install and configure these tools in your Kubernetes cluster.
+We’ll set up a MySQL cluster and prepare observability tools to monitor its performance.
 
-### 2.1 Install Prometheus Operator and Grafana
+### 2.1 Create a MySQL Cluster
 
-1. **Create a Monitoring Namespace**  
-It is a best practice to isolate monitoring components in their own namespace. Create a new namespace called `monitoring`:
-
+Let’s start with a simple MySQL cluster using modest resources:
 ```bash
-kubectl create namespace monitoring
+kbcli cluster create mycluster --type mysql --replicas 1 \
+  --cpu 0.5 --memory 0.5Gi --namespace demo
 ```
-
-2. **Add the Prometheus Community Helm Repository**  
-This repository contains the official Helm chart for the Prometheus Operator:
-
-```bash
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-```
-
-3. **Install the Prometheus Operator (kube-prometheus-stack)**  
-Use Helm to install the Prometheus Operator and Grafana. This command configures Grafana and Prometheus as NodePort services, exposing them on ports `32000` and `32001` respectively.
-
-```bash
-helm install prometheus-operator prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --timeout 10m \
-  --set grafana.service.type=NodePort \
-  --set grafana.service.nodePort=32000 \
-  --set prometheus.service.type=NodePort \
-  --set prometheus.service.nodePort=32001 \
-  --set alertmanager.service.type=NodePort \
-  --set alertmanager.service.nodePort=32002
-```
-
-4. **Verify the Installation**  
-Check that all the monitoring components are running in the `monitoring` namespace:
-
-```bash
-kubectl get pods -n monitoring
-```
-
-::details-box
----
-:summary: You should be able to see output like this
----
-```bash
-NAME                                                     READY   STATUS    RESTARTS   AGE
-alertmanager-prometheus-operator-kube-p-alertmanager-0   2/2     Running   0          4m24s
-prometheus-operator-grafana-5f5b9584b8-qmzqm             3/3     Running   0          4m30s
-prometheus-operator-kube-p-operator-8fd7b657-rc9c6       1/1     Running   0          4m30s
-prometheus-operator-kube-state-metrics-75597dbd5-xr96v   1/1     Running   0          4m30s
-prometheus-operator-prometheus-node-exporter-bcsqr       1/1     Running   0          4m30s
-prometheus-operator-prometheus-node-exporter-hbvjv       1/1     Running   0          4m30s
-prometheus-operator-prometheus-node-exporter-rpngp       1/1     Running   0          4m30s
-prometheus-prometheus-operator-kube-p-prometheus-0       2/2     Running   0          4m23s
-```
-::
-
 
 ::simple-task
 ---
 :tasks: tasks
-:name: verify_monitor_ready
+:name: verify_cluster_created
 ---
 #active
-Waiting for the Prometheus & Grafana to become ready...
-
+Waiting for the MySQL cluster to be created...
 #completed
-Yay! Prometheus & Grafana is ready. 🎉
+Success! The MySQL cluster is up and running. 🎉
 ::
 
-### 2.2 Monitor a Database Cluster
+### 2.2 Enable Metrics Exporter
 
-After setting up Prometheus and Grafana, configure them to monitor your KubeBlocks database cluster.
+Ensure the cluster exports metrics (building on Tutorial 401):
+```bash
+kubectl patch cluster mycluster -n demo --type "json" -p '[{"op":"add","path":"/spec/componentSpecs/0/disableExporter","value":false}]'
+```
 
-1. **Create a PodMonitor Resource**  
-A `PodMonitor` resource instructs Prometheus on which pods to scrape for metrics. In this example, the `PodMonitor` is configured to monitor the MySQL component of your `mycluster` database (running in the `demo` namespace). The labels specified help Prometheus to correctly associate the metrics with your database cluster.
+::simple-task
+---
+:tasks: tasks
+:name: verify_disable_exporter_is_false
+---
+#active
+Waiting for the MySQL cluster to export metrics...
+#completed
+Yay! Your MySQL cluster is exporting metrics. 🎉
+::
 
+### 2.3 Set Up Prometheus and Grafana
+
+We assume Prometheus and Grafana are already installed in the `monitoring` namespace (as in Tutorial 401). If not, refer to Tutorial 401’s Section 2.1 to install them. Verify they’re running:
+```bash
+kubectl get pods -n monitoring
+```
+
+Configure a `PodMonitor` to scrape metrics from `mycluster` (reuse the setup from Tutorial 401):
 ```bash
 kubectl apply -f - <<EOF
 apiVersion: monitoring.coreos.com/v1
 kind: PodMonitor
 metadata:
   name: mycluster-pod-monitor
-  namespace: monitoring # Namespace where the Prometheus operator is installed
-  labels:               # Labels to match the Prometheus operator’s podMonitorSelector
+  namespace: monitoring
+  labels:
     release: prometheus-operator
 spec:
   jobLabel: app.kubernetes.io/managed-by
-  # Transfer selected labels from the associated pod onto the ingested metrics
   podTargetLabels:
   - app.kubernetes.io/instance
   - app.kubernetes.io/managed-by
@@ -447,174 +415,141 @@ spec:
 EOF
 ```
 
-2. **Enable Metrics Exporter for the Database Cluster**  
-Ensure that your database cluster is exporting metrics by enabling the exporter. Patch the cluster configuration to set `disableExporter` to `false` for the relevant component (in this case, the MySQL component):
+---
 
+## 3. Auto-Tuning in Action: Dynamic Parameter Adjustment
+
+Let’s explore how KubeBlocks auto-tunes MySQL parameters when resources change.
+
+### 3.1 Check Initial Parameters
+
+Connect to the MySQL cluster and inspect the `max_connections` parameter:
 ```bash
-kubectl patch cluster mycluster -n demo --type "json" -p '[{"op":"add","path":"/spec/componentSpecs/0/disableExporter","value":false}]'
+kbcli cluster connect mycluster -n demo -- mysql -e "SHOW VARIABLES LIKE 'max_connections';"
+```
+Example output:
+```
+Variable_name    Value
+max_connections  151
 ```
 
-This configuration enables Prometheus to scrape metrics from your MySQL pods, allowing you to monitor the performance and health of your database cluster.
+### 3.2 Adjust Resources and Trigger Auto-Tuning
+
+Increase the memory from 0.5Gi to 2Gi:
+```bash
+kbcli cluster update mycluster --memory 2Gi -n demo
+```
 
 ::simple-task
 ---
 :tasks: tasks
-:name: verify_disable_exporter_is_false
+:name: verify_resource_updated
 ---
 #active
-Waiting for the MySQL Cluster to export metrics by enabling the exporter...
-
+Waiting for resource update to complete...
 #completed
-Yay! Your MySQL Cluster is exporting metrics. 🎉
+Resources updated successfully! 🎉
 ::
 
----
+Recheck `max_connections`:
+```bash
+kbcli cluster connect mycluster -n demo -- mysql -e "SHOW VARIABLES LIKE 'max_connections';"
+```
+Example output:
+```
+Variable_name    Value
+max_connections  300
+```
+**Explanation:** KubeBlocks detected the memory increase and automatically adjusted `max_connections` to optimize for the new resource capacity.
 
-## 3. Accessing and Visualizing Metrics
+### 3.3 Validate Performance Improvement
 
-With Prometheus and Grafana deployed and properly configured, you can now access and visualize your cluster’s metrics.
-
-In the Iximiuz Lab interface, Switch to the :tab-locator-inline{text='Grafana tab' name='Grafana'}. Once you are on the Grafana page, log in using the following credentials:
-
+Switch to the :tab-locator-inline{text='Grafana tab' name='Grafana'} in the Iximiuz Lab interface. Log in with:
 - **Username:** `admin`
 - **Password:** `prom-operator`
 
-After logging in, click on the **Home** tab in the left-hand menu, then navigate to **Dashboards > APPS / MySQL**. Here, you will find the MySQL Dashboard displaying key metrics such as query performance, resource usage, and overall operational status.
-
-These visualizations provide you with real-time insights into your database cluster's health and performance, enabling you to quickly identify and troubleshoot issues, and ensuring that your KubeBlocks-managed database clusters run efficiently.
-
-::remark-box
-⏳ This may take a minute. If you don't see it, please wait a moment and refresh the tab.
-::
+Navigate to **Dashboards > APPS / MySQL** to view metrics like connection usage and resource utilization. The increased memory and `max_connections` should allow more concurrent connections without strain.
 
 ::image-box
 ---
-src: __static__/grafana-1.png
-alt: 'Grafana'
+src: __static__/grafana-mysql-connections.png
+alt: 'Grafana MySQL Connections Dashboard'
 ---
 ::
 
-
 ---
 
-## 4. Alerts and Anomaly Detection
+## 4. Detecting Anomalies and Optimizing Performance
 
-In this section, we create a service-level alert for MySQL to detect when an instance goes offline. This alert monitors the MySQL service in the `demo` namespace and will trigger immediately when an instance goes down.
+Using Level 4 observability, we’ll simulate a workload, detect bottlenecks, and optimize the configuration.
 
-We create a `PrometheusRule` custom resource (CR) that instructs Prometheus to evaluate the condition for the MySQL service. In this case, if `mysql_up{namespace="demo"}` equals 0, it indicates that the MySQL instance is not running, and an alert will be triggered immediately.
+### 4.1 Simulate a High Workload
 
+Run a stress test with `mysqlslap` to simulate high concurrency:
 ```bash
-kubectl apply -f - <<EOF
-apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
-metadata:
-  name: mysql-restart-alert
-  namespace: monitoring
-  labels:
-    release: prometheus-operator
-spec:
-  groups:
-  - name: mysql.rules
-    rules:
-    - alert: MySQLInstanceDown
-      expr: mysql_up{namespace="demo"} == 0
-      labels:
-        severity: warning
-      annotations:
-        summary: "MySQL instance is down"
-        description: "MySQL instance {{ $labels.pod }} in namespace demo is down"
-EOF
+kbcli cluster connect mycluster -n demo -- mysqlslap --concurrency=200 --iterations=10 --number-of-queries=1000 --create-schema=test
+```
+
+### 4.2 Identify Performance Bottlenecks
+
+Forward the Prometheus port:
+```bash
+kubectl port-forward svc/prometheus-operator-prometheus -n monitoring 9090:9090 &
+```
+Visit `http://localhost:9090` and query:
+```
+mysql_global_status_threads_connected{namespace="demo"}
+```
+If the number of active connections nears `max_connections` (e.g., 300), you risk connection refusals under heavier loads.
+
+### 4.3 Optimize Configuration
+
+Manually adjust `max_connections` to 500 (simulating a future auto-tuning capability):
+```bash
+kbcli cluster configure mycluster --set max_connections=500 -n demo
 ```
 
 ::simple-task
 ---
 :tasks: tasks
-:name: verify_prometheus_rule_created
+:name: verify_config_applied
 ---
 #active
-Waiting for the PrometheusRule CR to be created in the monitoring namespace...
-
+Waiting for configuration to be applied...
 #completed
-Yay! The PrometheusRule CR has been created successfully. 🎉
+Configuration updated successfully! 🎉
 ::
 
+### 4.4 Verify Optimization
 
-Next, we apply an AlertmanagerConfig custom resource to customize how alerts are routed and handled. While Prometheus generates alerts based on your rules, Alertmanager is responsible for grouping, silencing, and routing those alerts. 
-
-In our example, we configure Alertmanager to route alerts to a "null" receiver, which effectively discards the alerts for demonstration purposes.
-
+Rerun the `mysqlslap` test:
 ```bash
-kubectl apply -f - <<EOF
-apiVersion: monitoring.coreos.com/v1alpha1
-kind: AlertmanagerConfig
-metadata:
-  name: mysql-null-config
-  namespace: monitoring
-spec:
-  route:
-    receiver: 'null'
-    groupBy: ['alertname']
-    groupWait: 10s
-    groupInterval: 1m
-  receivers:
-  - name: 'null'
-EOF
+kbcli cluster connect mycluster -n demo -- mysqlslap --concurrency=200 --iterations=10 --number-of-queries=1000 --create-schema=test
 ```
-
-::simple-task
----
-:tasks: tasks
-:name: verify_alertmanager_config_created
----
-#active
-Waiting for the AlertmanagerConfig CR (mysql-null-config) to be created in the monitoring namespace...
-
-#completed
-Awesome! The AlertmanagerConfig CR has been created successfully. 🎉
-::
-
-
-In the Iximiuz Lab interface, Switch to the :tab-locator-inline{text='Prometheus tab' name='Prometheus'}. After applying the alert configuration, refresh your Prometheus UI. You should see the new MySQL downtime alert listed in the alert panel.
-
-::remark-box
-⏳ This may take a minute. If you don't see it, please wait a moment and refresh the tab.
-::
+Check Grafana again to confirm the cluster handles the load without hitting connection limits.
 
 ::image-box
 ---
-src: __static__/alert.png
-alt: 'Alert Panel'
+src: __static__/grafana-optimized.png
+alt: 'Grafana Optimized Performance'
 ---
 ::
 
-To simulate a failure and verify that the alert is correctly triggered, delete the MySQL pods:
-
-```bash
-kubectl delete pods mycluster-mysql-0 -n demo
-```
-
-After the pods are deleted, return to the Prometheus alert panel, refresh the tab to see the triggered alert.
-
-::image-box
 ---
-src: __static__/alert-firing.png
-alt: 'Firing Alert'
----
-::
 
+## 5. Summary
+
+In this tutorial, we explored KubeBlocks’ Auto-Tuning capabilities:
+- Automatically adjusting parameters like `max_connections` based on resource specs.
+- Leveraging observability to detect and resolve performance issues.
+- Reducing manual intervention for efficient database management.
+
+While KubeBlocks doesn’t yet support auto-scaling, its parameter tuning aligns with Level 5’s “Auto Pilot” vision. Stay tuned for future enhancements like automated scaling!
 
 ---
 
-## Summary
+## 6. What’s Next?
 
-In this tutorial, we demonstrated how to enable and leverage observability features in KubeBlocks. We showed you how to deploy Prometheus and Grafana to monitor metrics, set up a PodMonitor to scrape data from your MySQL cluster, and configure alerts to detect service anomalies.
-
-It is important to note that KubeBlocks leverages open source solutions and integrates tightly with the open source community. This approach ensures that our observability features benefit from continuous improvements and community support.
-
----
-
-## What’s Next?
-
-* Experiment with KubeBlocks on other database engines such as PostgreSQL, MongoDB, and Redis. 
-* Try integrating different alert channels and custom dashboards to tailor the monitoring experience to your environment.
-* Stay tuned for our upcoming Tutorial 501, where we'll explore advanced auto-tuning and optimization features aligned with Operator Capability Level 5.
+- Experiment with Auto-Tuning on other engines like PostgreSQL or Redis.
+- Customize configuration templates for specific workloads.
+- Keep an eye on KubeBlocks updates for more Level 5 features.
