@@ -92,45 +92,32 @@ tasks:
       apiVersion: apps.kubeblocks.io/v1alpha1
       kind: Cluster
       metadata:
-        name: mycluster
+        name: mysql-cmpd-cluster
         namespace: demo
       spec:
-        clusterDefinitionRef: mysql
-        clusterVersionRef: mysql-8.0.33
         terminationPolicy: Delete
-        affinity:
-          podAntiAffinity: Preferred
-          topologyKeys:
-          - kubernetes.io/hostname
-        tolerations:
-          - key: kb-data
-            operator: Equal
-            value: 'true'
-            effect: NoSchedule
         componentSpecs:
-        - name: mysql
-          componentDefRef: mysql
-          enabledLogs:
-          - error
-          - slow
-          disableExporter: true
-          replicas: 1
-          serviceAccountName: kb-mycluster
-          resources:
-            limits:
-              cpu: '0.5'
-              memory: 0.5Gi
-            requests:
-              cpu: '0.5'
-              memory: 0.5Gi
-          volumeClaimTemplates:
-          - name: data
-            spec:
-              accessModes:
-              - ReadWriteOnce
-              resources:
-                requests:
-                  storage: 20Gi
+          - name: mysql
+            componentDef: "mysql-8.0"
+            serviceVersion: 8.0.33
+            disableExporter: true
+            replicas: 2
+            resources:
+              limits:
+                cpu: '0.5'
+                memory: 0.5Gi
+              requests:
+                cpu: '0.5'
+                memory: 0.5Gi
+            volumeClaimTemplates:
+              - name: data
+                spec:
+                  storageClassName: ""
+                  accessModes:
+                    - ReadWriteOnce
+                  resources:
+                    requests:
+                      storage: 20Gi
       EOF
       cat <<EOF | kubectl apply -f -
       apiVersion: dataprotection.kubeblocks.io/v1alpha1
