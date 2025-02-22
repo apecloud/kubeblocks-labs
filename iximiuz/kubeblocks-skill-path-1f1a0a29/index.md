@@ -2,7 +2,7 @@
 title: Get Started with KubeBlocks
 
 description: |
-  
+  Master database management on Kubernetes with Get Started with KubeBlocks! This skill path guides you through five tutorials—from setup to auto-tuning—showing how KubeBlocks runs any database with ease and production-grade power. Learn to deploy, upgrade, back up, monitor, and optimize databases, aligned with Operator Capability levels. 
 
 kind: skill-path
 
